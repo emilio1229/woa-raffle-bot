@@ -1,0 +1,69 @@
+﻿import { raffleStore } from "./raffleStore.js";
+import { buildRaffleEmbed } from "./embedBuilder.js";
+
+/**
+ * Named export required by src/index.js
+ * handleInteraction handles commands, buttons, and select menus.
+ */
+export async function handleInteraction(interaction) {
+  try {
+    // Chat input commands
+    if (interaction.isChatInputCommand && interaction.isChatInputCommand()) {
+      const command = interaction.client.commands.get(interaction.commandName);
+      if (!command) return;
+      await command.execute(interaction);
+      return;
+    }
+
+    // Button interactions
+    if (interaction.isButton && interaction.isButton()) {
+      // Acknowledge immediately to avoid double-clicks or Unknown interaction
+      try {
+        await interaction.deferUpdate();
+      } catch (err) {
+        // Best-effort fallback if deferUpdate fails
+        try { await interaction.reply({ content: "Processing…", ephemeral: true }); } catch {}
+      }
+
+      const [action, raffleId] = interaction.customId.split("_");
+      const userId = interaction.user.id;
+      const raffle = raffleStore.findById(raffleId);
+
+      if (!raffle) {
+        try { await interaction.editReply({ content: "This raffle no longer exists.", components: [] }); } catch {}
+        return;
+      }
+
+      if (action === "enter") {
+        raffleStore.addEntry(raffleId, userId);
+      } else if (action === "leave") {
+        raffleStore.removeEntry(raffleId, userId);
+      }
+
+      // Rebuild embed and update message
+      const updated = raffleStore.findById(raffleId);
+      const embed = buildRaffleEmbed(updated, updated.entries.length);
+
+      try {
+        await interaction.editReply({ embeds: [embed] });
+      } catch (err) {
+        // If editReply fails, try to fetch and edit the message directly
+        try {
+          const channel = await interaction.client.channels.fetch(raffle.channelId);
+          const msg = await channel.messages.fetch(raffle.messageId);
+          await msg.edit({ embeds: [embed] });
+        } catch {}
+      }
+
+      return;
+    }
+
+    // Select menu interactions (if used)
+    if (interaction.isStringSelectMenu && interaction.isStringSelectMenu()) {
+      // handle select menu if implemented
+      return;
+    }
+  } catch (err) {
+    console.error("interaction handler error:", err);
+  }
+}
