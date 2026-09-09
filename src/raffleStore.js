@@ -17,10 +17,10 @@ function write(data) {
   fs.writeFileSync(FILE, JSON.stringify(data, null, 2), "utf-8");
 }
 
-export const raffleStore = {
+class RaffleStore {
   all() {
     return read();
-  },
+  }
 
   create(partial) {
     const data = read();
@@ -32,22 +32,20 @@ export const raffleStore = {
       channelId: partial.channelId,
       messageId: partial.messageId ?? null,
 
-      // --- RITUAL SYSTEM ADDITIONS ---
-      tagRole: partial.tagRole ?? null,          // The role invoked in the ritual
-      wizardPhrase: partial.wizardPhrase ?? "", // The incantation used
-      ritualType: partial.ritualType ?? "soul-binding", // Future expansion
+      tagRole: partial.tagRole ?? null,
+      wizardPhrase: partial.wizardPhrase ?? "",
+      ritualType: partial.ritualType ?? "soul-binding",
 
-      // --- EXISTING FIELDS ---
       prize: partial.prize,
       endsAt: partial.endsAt,
       entries: partial.entries ?? [],
-      ended: partial.ended ?? false
+      ended: false
     };
 
     data.push(raffle);
     write(data);
     return raffle;
-  },
+  }
 
   update(id, patch) {
     const data = read();
@@ -57,27 +55,30 @@ export const raffleStore = {
     data[idx] = { ...data[idx], ...patch };
     write(data);
     return data[idx];
-  },
+  }
+
+  // REQUIRED BY raffle-start, bindSoul, unbindSoul, autoEndManager
+  getActive(guildId) {
+    return read().find(r => r.guildId === guildId && !r.ended) || null;
+  }
+
+  end(guildId) {
+    const data = read();
+    const raffle = data.find(r => r.guildId === guildId && !r.ended);
+    if (!raffle) return null;
+
+    raffle.ended = true;
+    write(data);
+    return raffle;
+  }
+
+  findById(id) {
+    return read().find(r => r.id === id) || null;
+  }
 
   setMessageId(id, messageId) {
     return this.update(id, { messageId });
-  },
-
-  markEnded(id) {
-    return this.update(id, { ended: true });
-  },
-
-  findByMessageId(messageId) {
-    return read().find(r => r.messageId === messageId);
-  },
-
-  findById(id) {
-    return read().find(r => r.id === id);
-  },
-
-  activeInGuild(guildId) {
-    return read().filter(r => r.guildId === guildId && !r.ended);
-  },
+  }
 
   addEntry(id, userId) {
     const raffle = this.findById(id);
@@ -88,7 +89,7 @@ export const raffleStore = {
       this.update(id, { entries: raffle.entries });
     }
     return raffle;
-  },
+  }
 
   removeEntry(id, userId) {
     const raffle = this.findById(id);
@@ -98,4 +99,6 @@ export const raffleStore = {
     this.update(id, { entries: raffle.entries });
     return raffle;
   }
-};
+}
+
+export const raffleStore = new RaffleStore();
