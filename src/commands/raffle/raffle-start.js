@@ -70,9 +70,9 @@ export default {
 
     collector.on("collect", async roleSelection => {
       // SAFELY acknowledge the interaction
-     await roleSelection.reply({
+     await roleSelection.followUp({
   content: "🔮 Role invoked. The ritual begins.",
-  flags: 64 // ephemeral
+  flags: 64 
 });
 
 
