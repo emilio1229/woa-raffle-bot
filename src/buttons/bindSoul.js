@@ -1,42 +1,29 @@
+// src/buttons/bindSoul.js
 import { raffleStore } from "../raffleStore.js";
 import { buildRaffleEmbed } from "../embedBuilder.js";
-import { buildRaffleButtons } from "../components.js";
 
 export async function handleBindSoul(interaction, raffleId) {
-  const raffle = raffleStore.findById(raffleId);
-  if (!raffle || raffle.ended) {
-    return interaction.reply({
-      content: "That ritual has ended or no longer exists.",
-      ephemeral: true
-    });
-  }
+  const userId = interaction.user.id;
 
-  const added = raffleStore.addEntry(raffleId, interaction.user.id);
-  if (!added) {
-    return interaction.reply({
-      content: "Your soul is already bound to this ritual.",
-      ephemeral: true
-    });
-  }
+  // Add entry
+  raffleStore.addEntry(raffleId, userId);
 
-  const embed = buildRaffleEmbed(raffle, raffle.entries.length);
-  const buttons = buildRaffleButtons(raffle.id);
+  // Rebuild embed
+  const updated = raffleStore.findById(raffleId);
+  const embed = buildRaffleEmbed(updated, updated.entries.length);
 
+  // Update message
   try {
-    const channel = await interaction.client.channels.fetch(raffle.channelId);
-    const message = await channel.messages.fetch(raffle.messageId);
-
-    await message.edit({
-      embeds: [embed],
-      components: [buttons]
-    });
+    const channel = await interaction.client.channels.fetch(updated.channelId);
+    const msg = await channel.messages.fetch(updated.messageId);
+    await msg.edit({ embeds: [embed] });
   } catch (err) {
-    console.error("Failed to update ritual message:", err);
+    console.error("bindSoul embed update failed:", err);
   }
 
+  // Ephemeral confirmation
   return interaction.followUp({
-    content: "🩸 Your soul has been offered to the ritual.",
+    content: "Your soul has been bound to this raffle.",
     ephemeral: true
   });
 }
-
