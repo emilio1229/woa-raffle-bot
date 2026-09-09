@@ -1,18 +1,20 @@
 // src/interactionCreate.js
 import { raffleStore } from "./raffleStore.js";
-import { buildRaffleEmbed } from "./embedBuilder.js";
+import { EmbedBuilder } from "discord.js";
 
-// Correct imports based on your actual folder structure
+// Ritual button handlers
 import { handleBindSoul } from "./buttons/bindSoul.js";
 import { handleUnbindSoul } from "./buttons/unbindSoul.js";
 
 /**
  * Named export required by src/index.js
- * handleInteraction handles commands, buttons, and select menus.
+ * Handles commands, buttons, and select menus.
  */
 export async function handleInteraction(interaction) {
   try {
-    // Chat input commands
+    // -----------------------------
+    // CHAT INPUT COMMANDS
+    // -----------------------------
     if (interaction.isChatInputCommand && interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
       if (!command) return;
@@ -20,12 +22,19 @@ export async function handleInteraction(interaction) {
       return;
     }
 
-    // Button interactions
+    // -----------------------------
+    // BUTTON INTERACTIONS
+    // -----------------------------
     if (interaction.isButton()) {
       try {
         await interaction.deferUpdate();
       } catch {
-        try { await interaction.reply({ content: "Processing…", flags: 64 }); } catch {}
+        try {
+          await interaction.reply({
+            content: "Processing…",
+            flags: 64
+          });
+        } catch {}
       }
 
       const [action, raffleId] = interaction.customId.split("_");
@@ -34,18 +43,20 @@ export async function handleInteraction(interaction) {
       if (!raffle) {
         try {
           await interaction.editReply({
-            content: "This raffle no longer exists.",
+            content: "This ritual no longer exists.",
             components: []
           });
         } catch {}
         return;
       }
 
+      // Soul-binding ritual entry
       if (action === "enter") {
         await handleBindSoul(interaction, raffleId);
         return;
       }
 
+      // Soul unbinding ritual exit
       if (action === "leave") {
         await handleUnbindSoul(interaction, raffleId);
         return;
@@ -54,10 +65,13 @@ export async function handleInteraction(interaction) {
       return;
     }
 
-    // Select menu interactions
+    // -----------------------------
+    // SELECT MENU INTERACTIONS
+    // -----------------------------
     if (interaction.isStringSelectMenu && interaction.isStringSelectMenu()) {
       const customId = interaction.customId;
 
+      // Manual end raffle selector
       if (customId === "select_end_raffle") {
         try { await interaction.deferUpdate(); } catch {}
 
@@ -68,7 +82,7 @@ export async function handleInteraction(interaction) {
         if (!raffle) {
           try {
             await interaction.editReply({
-              content: "Selected raffle not found.",
+              content: "Selected ritual not found.",
               components: []
             });
           } catch {}
@@ -81,31 +95,46 @@ export async function handleInteraction(interaction) {
           const entries = updated.entries ?? [];
 
           let resultText;
+          let winner = null;
+
           if (entries.length === 0) {
-            resultText = "No entries — no winner.";
+            resultText = "💀 No souls were bound — the ritual yields no winner.";
           } else {
-            const winner = entries[Math.floor(Math.random() * entries.length)];
-            resultText = `Winner: <@${winner}>`;
+            winner = entries[Math.floor(Math.random() * entries.length)];
+            resultText = `🔮 The ritual has chosen: <@${winner}>`;
           }
 
+          // Build ritual ending embed
+          const endingEmbed = new EmbedBuilder()
+            .setTitle("🔮 THE RITUAL CONCLUDES 🔮")
+            .setDescription(
+              `${updated.wizardPhrase}\n\n` +
+              (winner
+                ? `By ancient decree, **<@${winner}>** is chosen.\n\nThe circle falls silent…`
+                : `The sigils fade — no essence was found worthy.\n\nThe circle grows quiet…`)
+            )
+            .setColor(0x4B0082);
+
+          // Update original raffle message
           try {
             const channel = await interaction.client.channels.fetch(updated.channelId);
             const msg = await channel.messages.fetch(updated.messageId);
-            const embed = buildRaffleEmbed(updated, updated.entries.length);
-            await msg.edit({ embeds: [embed], components: [] });
+            await msg.edit({ embeds: [endingEmbed], components: [] });
           } catch {}
 
+          // Update admin reply
           try {
             await interaction.editReply({
-              content: `Raffle ended. ${resultText}`,
+              content: resultText,
               components: []
             });
           } catch {}
+
         } catch (err) {
           console.error("select_end_raffle error:", err);
           try {
             await interaction.editReply({
-              content: "An error occurred while ending the raffle.",
+              content: "An error occurred while ending the ritual.",
               components: []
             });
           } catch {}
