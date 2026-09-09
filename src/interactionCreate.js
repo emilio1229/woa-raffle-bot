@@ -1,39 +1,40 @@
 // src/interactionCreate.js
 import { raffleStore } from "./raffleStore.js";
-import { EmbedBuilder } from "discord.js";
+import { buildRaffleEmbed } from "./embedBuilder.js";
 
 // Ritual button handlers
 import { handleBindSoul } from "./buttons/bindSoul.js";
 import { handleUnbindSoul } from "./buttons/unbindSoul.js";
 
 /**
- * Named export required by src/index.js
- * Handles commands, buttons, and select menus.
+ * Unified interaction handler for:
+ * - Slash commands
+ * - Buttons
+ * - String select menus
+ * - Role select menus
  */
 export async function handleInteraction(interaction) {
   try {
-    // -----------------------------
-    // CHAT INPUT COMMANDS
-    // -----------------------------
-    if (interaction.isChatInputCommand && interaction.isChatInputCommand()) {
+    // ---------------------------------------------------------
+    // SLASH COMMANDS
+    // ---------------------------------------------------------
+    if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
       if (!command) return;
+
       await command.execute(interaction);
       return;
     }
 
-    // -----------------------------
-    // BUTTON INTERACTIONS
-    // -----------------------------
+    // ---------------------------------------------------------
+    // BUTTONS
+    // ---------------------------------------------------------
     if (interaction.isButton()) {
       try {
         await interaction.deferUpdate();
       } catch {
         try {
-          await interaction.reply({
-            content: "Processing…",
-            flags: 64
-          });
+          await interaction.reply({ content: "Processing…", flags: 64 });
         } catch {}
       }
 
@@ -50,13 +51,11 @@ export async function handleInteraction(interaction) {
         return;
       }
 
-      // Soul-binding ritual entry
       if (action === "enter") {
         await handleBindSoul(interaction, raffleId);
         return;
       }
 
-      // Soul unbinding ritual exit
       if (action === "leave") {
         await handleUnbindSoul(interaction, raffleId);
         return;
@@ -65,17 +64,17 @@ export async function handleInteraction(interaction) {
       return;
     }
 
-    // -----------------------------
-    // SELECT MENU INTERACTIONS
-    // -----------------------------
-    if (interaction.isStringSelectMenu && interaction.isStringSelectMenu()) {
+    // ---------------------------------------------------------
+    // STRING SELECT MENUS
+    // (Used for manual end raffle)
+    // ---------------------------------------------------------
+    if (interaction.isStringSelectMenu()) {
       const customId = interaction.customId;
 
-      // Manual end raffle selector
       if (customId === "select_end_raffle") {
         try { await interaction.deferUpdate(); } catch {}
 
-        const selected = interaction.values && interaction.values[0];
+        const selected = interaction.values[0];
         if (!selected) return;
 
         const raffle = raffleStore.findById(selected);
@@ -94,8 +93,8 @@ export async function handleInteraction(interaction) {
           const updated = raffleStore.findById(raffle.id);
           const entries = updated.entries ?? [];
 
-          let resultText;
           let winner = null;
+          let resultText;
 
           if (entries.length === 0) {
             resultText = "💀 No souls were bound — the ritual yields no winner.";
@@ -104,25 +103,14 @@ export async function handleInteraction(interaction) {
             resultText = `🔮 The ritual has chosen: <@${winner}>`;
           }
 
-          // Build ritual ending embed
-          const endingEmbed = new EmbedBuilder()
-            .setTitle("🔮 THE RITUAL CONCLUDES 🔮")
-            .setDescription(
-              `${updated.wizardPhrase}\n\n` +
-              (winner
-                ? `By ancient decree, **<@${winner}>** is chosen.\n\nThe circle falls silent…`
-                : `The sigils fade — no essence was found worthy.\n\nThe circle grows quiet…`)
-            )
-            .setColor(0x4B0082);
+          const endingEmbed = buildRaffleEmbed(updated, updated.entries.length, winner);
 
-          // Update original raffle message
           try {
             const channel = await interaction.client.channels.fetch(updated.channelId);
             const msg = await channel.messages.fetch(updated.messageId);
             await msg.edit({ embeds: [endingEmbed], components: [] });
           } catch {}
 
-          // Update admin reply
           try {
             await interaction.editReply({
               content: resultText,
@@ -145,6 +133,21 @@ export async function handleInteraction(interaction) {
 
       return;
     }
+
+    // ---------------------------------------------------------
+    // ROLE SELECT MENUS
+    // (Used by raffle-start.js)
+    // ---------------------------------------------------------
+    if (interaction.isRoleSelectMenu()) {
+      // DO NOT handle logic here — raffle-start.js uses awaitMessageComponent()
+      // We ONLY acknowledge the interaction so Discord doesn't timeout.
+      try {
+        await interaction.deferUpdate();
+      } catch {}
+
+      return;
+    }
+
   } catch (err) {
     console.error("interaction handler error:", err);
   }
