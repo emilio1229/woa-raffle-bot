@@ -76,7 +76,7 @@ export default {
       const roleName = roleObj ? roleObj.name : "Unknown Role";
 
       // Dynamic wizard phrase
-      const wizardPhrase = `By arcane decree, the souls of <@&${tagRole}> — **${roleName}** — are summoned to the ritual.`;
+      const wizardPhrase = `By arcane decree, the souls of <@&${tagRole}> — are summoned to the ritual.`;
 
       // Create raffle entry
       const raffle = raffleStore.create({
