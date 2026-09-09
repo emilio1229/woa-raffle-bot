@@ -1,3 +1,4 @@
+// src/commands/raffle/raffle-start.js
 import {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -15,6 +16,11 @@ export default {
     .setName("raffle-start")
     .setDescription("Begin a new arcane ritual raffle.")
     .addStringOption(opt =>
+      opt.setName("name")
+        .setDescription("Name of the ritual raffle")
+        .setRequired(true)
+    )
+    .addStringOption(opt =>
       opt.setName("prize")
         .setDescription("The offering for the ritual.")
         .setRequired(true)
@@ -26,6 +32,7 @@ export default {
     ),
 
   async execute(interaction) {
+    const name = interaction.options.getString("name");
     const prize = interaction.options.getString("prize");
     const durationInput = interaction.options.getString("duration");
 
@@ -68,24 +75,22 @@ export default {
     });
 
     collector.on("collect", async roleSelection => {
-      // SAFEST ACKNOWLEDGMENT FOR RAILWAY
       await roleSelection.deferUpdate().catch(() => {});
 
       const tagRole = roleSelection.values[0];
-      const roleObj = interaction.guild.roles.cache.get(tagRole);
-      const roleName = roleObj ? roleObj.name : "Unknown Role";
 
-      // Dynamic wizard phrase
-      const wizardPhrase = `By arcane decree, the souls of <@&${tagRole}> — are summoned to the ritual.`;
+      // NEW — Arcane invocation text (no role mention)
+      const invocationText = "Ancient sigils awaken, humming softly in the astral dark.";
 
       // Create raffle entry
       const raffle = raffleStore.create({
         guildId: interaction.guild.id,
         channelId: interaction.channel.id,
+        name,
         prize,
         endsAt,
         tagRole,
-        wizardPhrase,
+        invocationText,
         ritualType: "soul-binding",
         entries: []
       });
@@ -93,22 +98,42 @@ export default {
       // Ritual announcement
       const announcementEmbed = new EmbedBuilder()
         .setTitle("🔮 THE RITUAL BEGINS 🔮")
-        .setDescription(`${wizardPhrase}\n\nStep forth, bind your essence.`)
+        .setDescription(
+          [
+            "The circle stirs as arcane energies gather.",
+            "A ritual has been cast — the astral veil thins.",
+            "",
+            `⟐ **Ritual Name:** ${name}`,
+            `🎁 **Offering:** ${prize}`
+          ].join("\n")
+        )
         .setColor(0x4B0082);
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
-      // Raffle embed
+      // Raffle embed (new layout)
       const raffleEmbed = new EmbedBuilder()
-        .setTitle(`🎉 Raffle: ${prize} 🎉`)
-        .addFields(
-          { name: "Prize", value: prize, inline: true },
-          { name: "Ends At", value: `<t:${Math.floor(endsAt / 1000)}:F>`, inline: true },
-          { name: "Invocation", value: wizardPhrase }
-        )
-        .setColor(0x4B0082);
+        .setTitle(`🔮 ${name}`)
+        .setColor(0x4B0082)
+        .setDescription(
+          [
+            `A ritual has been cast. The circle hums with quiet power.`,
+            ``,
+            `**✨ Invocation**`,
+            `⟐ ${invocationText}`,
+            ``,
+            `**🎁 Prize**`,
+            `${prize}`,
+            ``,
+            `**⏳ Ends At**`,
+            `<t:${Math.floor(endsAt / 1000)}:F>`,
+            ``,
+            `**🩸 Bound Souls**`,
+            `${raffle.entries.length}`
+          ].join("\n")
+        );
 
-      // Bind / Unbind buttons
+      // Buttons
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("bindSoul")
