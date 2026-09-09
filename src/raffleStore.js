@@ -1,103 +1,57 @@
 // src/raffleStore.js
-import fs from "fs";
-import path from "path";
-
-const FILE = path.join(process.cwd(), "raffles.json");
-
-function read() {
-  try {
-    const raw = fs.readFileSync(FILE, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
-
-function write(data) {
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2), "utf-8");
-}
 
 class RaffleStore {
-  all() {
-    return read();
+  constructor() {
+    this.raffles = [];
   }
 
-  create(partial) {
-    const data = read();
-    const id = Date.now().toString();
-
+  // Create a new raffle
+  create(data) {
     const raffle = {
-      id,
-      guildId: partial.guildId,
-      channelId: partial.channelId,
-      messageId: partial.messageId ?? null,
-
-      tagRole: partial.tagRole ?? null,
-      wizardPhrase: partial.wizardPhrase ?? "",
-      ritualType: partial.ritualType ?? "soul-binding",
-
-      prize: partial.prize,
-      endsAt: partial.endsAt,
-      entries: partial.entries ?? [],
-      ended: false
+      id: Date.now().toString(), // unique ID
+      ...data
     };
 
-    data.push(raffle);
-    write(data);
+    this.raffles.push(raffle);
     return raffle;
   }
 
-  update(id, patch) {
-    const data = read();
-    const idx = data.findIndex(r => r.id === id);
-    if (idx === -1) return null;
-
-    data[idx] = { ...data[idx], ...patch };
-    write(data);
-    return data[idx];
-  }
-
-  // REQUIRED BY raffle-start, bindSoul, unbindSoul, autoEndManager
-  getActive(guildId) {
-    return read().find(r => r.guildId === guildId && !r.ended) || null;
-  }
-
-  end(guildId) {
-    const data = read();
-    const raffle = data.find(r => r.guildId === guildId && !r.ended);
-    if (!raffle) return null;
-
-    raffle.ended = true;
-    write(data);
-    return raffle;
-  }
-
-  findById(id) {
-    return read().find(r => r.id === id) || null;
-  }
-
-  setMessageId(id, messageId) {
-    return this.update(id, { messageId });
-  }
-
-  addEntry(id, userId) {
-    const raffle = this.findById(id);
-    if (!raffle) return null;
-
-    if (!raffle.entries.includes(userId)) {
-      raffle.entries.push(userId);
-      this.update(id, { entries: raffle.entries });
+  // Save updated raffle
+  save(updated) {
+    const index = this.raffles.findIndex(r => r.id === updated.id);
+    if (index !== -1) {
+      this.raffles[index] = updated;
     }
-    return raffle;
   }
 
-  removeEntry(id, userId) {
-    const raffle = this.findById(id);
-    if (!raffle) return null;
+  // Get raffle by ID
+  getById(id) {
+    return this.raffles.find(r => r.id === id);
+  }
 
-    raffle.entries = raffle.entries.filter(u => u !== userId);
-    this.update(id, { entries: raffle.entries });
-    return raffle;
+  // Get raffle by message ID (needed for buttons)
+  getIdByMessage(messageId) {
+    const raffle = this.raffles.find(r => r.messageId === messageId);
+    return raffle ? raffle.id : null;
+  }
+
+  // Set the message ID after sending the raffle embed
+  setMessageId(raffleId, messageId) {
+    const raffle = this.getById(raffleId);
+    if (raffle) {
+      raffle.messageId = messageId;
+      this.save(raffle);
+    }
+  }
+
+  // Get active raffle for a guild
+  getActive(guildId) {
+    return this.raffles.find(r => r.guildId === guildId && Date.now() < r.endsAt);
+  }
+
+  // End raffle
+  end(raffleId) {
+    this.raffles = this.raffles.filter(r => r.id !== raffleId);
   }
 }
 
