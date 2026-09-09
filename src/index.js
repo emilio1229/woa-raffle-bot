@@ -7,6 +7,11 @@ import { fileURLToPath } from "url";
 import { startAutoEndLoop } from "./autoEndmanager.js";
 import { handleInteraction } from "./interactionCreate.js";
 
+// BUTTON HANDLERS
+import { handleBindSoul } from "./buttons/bindSoul.js";
+import { handleUnbindSoul } from "./buttons/unbindSoul.js";
+import { raffleStore } from "./raffleStore.js";
+
 // Resolve directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,10 +37,7 @@ const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"))
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file);
 
-  // Import ES module
   const imported = await import(`file://${filePath}`);
-
-  // Commands MUST be default exports
   const command = imported.default;
 
   if (!command || !command.data || !command.data.name) {
@@ -55,6 +57,31 @@ client.on(Events.ClientReady, () => {
 
 // Interaction handler
 client.on(Events.InteractionCreate, async interaction => {
+
+  // 🔮 BUTTON HANDLING (THIS WAS MISSING)
+  if (interaction.isButton()) {
+    const messageId = interaction.message.id;
+    const raffleId = raffleStore.getIdByMessage(messageId);
+
+    if (!raffleId) {
+      return interaction.reply({
+        content: "❌ This ritual is no longer active.",
+        ephemeral: true
+      });
+    }
+
+    if (interaction.customId === "bindSoul") {
+      return handleBindSoul(interaction, raffleId);
+    }
+
+    if (interaction.customId === "unbindSoul") {
+      return handleUnbindSoul(interaction, raffleId);
+    }
+
+    return; // stop here, do NOT send to slash handler
+  }
+
+  // Slash commands
   await handleInteraction(interaction);
 });
 
