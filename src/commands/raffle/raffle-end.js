@@ -1,52 +1,65 @@
-// src/commands/raffle/raffle-end.js
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
-import { buildRaffleEmbed } from "../../embedBuilder.js";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("raffle-end")
-    .setDescription("Manually complete an active ritual raffle."),
+    .setDescription("Force-end the current ritual raffle."),
 
   async execute(interaction) {
-    const active = raffleStore.getActive();
+    const raffle = raffleStore.getActive(interaction.guild.id);
 
-    if (!active) {
+    if (!raffle) {
       return interaction.reply({
-        content: "💀 No active ritual exists.",
+        content: "❌ There is no active ritual to end.",
         ephemeral: true
       });
     }
 
-    // End the ritual
-    raffleStore.markEnded(active.id);
+    // Mark ended
+    raffleStore.update(raffle.id, { ended: true });
 
-    const updated = raffleStore.findById(active.id);
-    const entries = updated.entries ?? [];
-
-    let winner = null;
-    let resultText;
-
-    if (entries.length === 0) {
-      resultText = "💀 No souls were bound — the ritual yields no winner.";
-    } else {
-      winner = entries[Math.floor(Math.random() * entries.length)];
-      resultText = `🔮 The ritual has chosen: <@${winner}>`;
+    // Pick winner
+    let winnerId = null;
+    if (raffle.entries.length > 0) {
+      const randomIndex = Math.floor(Math.random() * raffle.entries.length);
+      winnerId = raffle.entries[randomIndex];
     }
 
-    const endingEmbed = buildRaffleEmbed(updated, entries.length, winner);
+    // Arcane glow
+    const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
 
-    // Update the original ritual message
+    const embed = new EmbedBuilder()
+      .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
+      .setDescription(
+        winnerId
+          ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${raffle.prize}`
+          : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
+      )
+      .addFields(
+        { name: "Prize", value: raffle.prize, inline: true },
+        { name: "Invocation", value: raffle.wizardPhrase },
+        { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
+      )
+      .setColor(0x4B0082);
+
+    // Update the raffle message (remove buttons)
     try {
-      const channel = await interaction.client.channels.fetch(updated.channelId);
-      const msg = await channel.messages.fetch(updated.messageId);
-      await msg.edit({ embeds: [endingEmbed], components: [] });
+      const channel = await interaction.client.channels.fetch(raffle.channelId);
+      const msg = await channel.messages.fetch(raffle.messageId).catch(() => null);
+
+      if (msg) {
+        await msg.edit({
+          embeds: [embed],
+          components: []
+        });
+      }
     } catch (err) {
-      console.error("raffle-end message update failed:", err);
+      console.error("Manual end update failed:", err);
     }
 
     return interaction.reply({
-      content: resultText,
+      content: "🔮 The ritual has been ended.",
       ephemeral: true
     });
   }
