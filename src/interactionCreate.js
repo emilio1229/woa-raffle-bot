@@ -1,6 +1,10 @@
-﻿// src/interactionCreate.js
+// src/interactionCreate.js
 import { raffleStore } from "./raffleStore.js";
 import { buildRaffleEmbed } from "./embedBuilder.js";
+
+// ⭐ NEW: Import your bind/unbind handlers
+import { handleBindSoul } from "./interactions/bindSoul.js";
+import { handleUnbindSoul } from "./interactions/unbindSoul.js";
 
 /**
  * Named export required by src/index.js
@@ -34,24 +38,15 @@ export async function handleInteraction(interaction) {
         return;
       }
 
+      // ⭐ FIXED: Use your bind/unbind handlers so ephemeral messages work
       if (action === "enter") {
-        raffleStore.addEntry(raffleId, userId);
-      } else if (action === "leave") {
-        raffleStore.removeEntry(raffleId, userId);
+        await handleBindSoul(interaction, raffleId);
+        return;
       }
 
-      // Rebuild embed and update message
-      const updated = raffleStore.findById(raffleId);
-      const embed = buildRaffleEmbed(updated, updated.entries.length);
-
-      try {
-        await interaction.editReply({ embeds: [embed] });
-      } catch {
-        try {
-          const channel = await interaction.client.channels.fetch(raffle.channelId);
-          const msg = await channel.messages.fetch(raffle.messageId);
-          await msg.edit({ embeds: [embed] });
-        } catch {}
+      if (action === "leave") {
+        await handleUnbindSoul(interaction, raffleId);
+        return;
       }
 
       return;
@@ -105,4 +100,3 @@ export async function handleInteraction(interaction) {
     console.error("interaction handler error:", err);
   }
 }
-
