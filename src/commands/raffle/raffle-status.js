@@ -1,28 +1,31 @@
-// src/commands/raffle/raffle-status.js
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
-import { buildRaffleEmbed } from "../../embedBuilder.js";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("raffle-status")
-    .setDescription("View the current ritual raffle status."),
+    .setDescription("Show the current ritual raffle status."),
 
   async execute(interaction) {
-    const active = raffleStore.getActive();
+    const raffle = raffleStore.getActive(interaction.guild.id);
 
-    if (!active) {
+    if (!raffle) {
       return interaction.reply({
-        content: "💀 No active ritual exists.",
+        content: "❌ There is no active ritual at the moment.",
         ephemeral: true
       });
     }
 
-    const embed = buildRaffleEmbed(active, active.entries.length);
+    const embed = new EmbedBuilder()
+      .setTitle("🔮 Active Ritual Status")
+      .addFields(
+        { name: "Prize", value: raffle.prize, inline: true },
+        { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
+        { name: "Invocation", value: raffle.wizardPhrase },
+        { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
+      )
+      .setColor(0x4B0082);
 
-    return interaction.reply({
-      embeds: [embed],
-      ephemeral: true
-    });
+    return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 };
