@@ -8,7 +8,7 @@ import {
 import { raffleStore } from "../../raffleStore.js";
 import { parseTime } from "../../utils/timeParser.js";
 
-// Replace these with your actual role IDs
+// Replace with your actual role IDs
 const MEMBERS_ROLE_ID = "MEMBERS_ROLE_ID_HERE";
 const SUPPORTERS_ROLE_ID = "SUPPORTERS_ROLE_ID_HERE";
 
@@ -23,7 +23,7 @@ export default {
     )
     .addStringOption(opt =>
       opt.setName("duration")
-        .setDescription("Duration (10m, 2h, tomorrow 5pm, 06/18/2026 2:30 PM, etc.)")
+        .setDescription("Duration (10m, 2h, tomorrow 5pm, etc.)")
         .setRequired(true)
     ),
 
@@ -58,19 +58,20 @@ export default {
         .setMaxValues(1)
     );
 
-    // Must NOT be ephemeral (collectors cannot capture ephemeral)
     const menuMessage = await interaction.reply({
       content: "Choose the role whose essence will be invoked:",
       components: [roleRow]
     });
 
-    // Collector for role selection
     const collector = menuMessage.createMessageComponentCollector({
       filter: i => i.customId === "tagRole" && i.user.id === interaction.user.id,
       time: 60000
     });
 
     collector.on("collect", async roleSelection => {
+      // SAFELY acknowledge the interaction
+      await roleSelection.deferUpdate();
+
       const tagRole = roleSelection.values[0];
 
       let wizardPhrase;
@@ -83,7 +84,7 @@ export default {
         wizardPhrase = `<@&${tagRole}> has been invoked by arcane decree.`;
       }
 
-      // Create raffle entry in store
+      // Create raffle entry
       const raffle = raffleStore.create({
         guildId: interaction.guild.id,
         channelId: interaction.channel.id,
@@ -95,16 +96,11 @@ export default {
         entries: []
       });
 
-      // Ritual announcement embed
+      // Ritual announcement
       const announcementEmbed = new EmbedBuilder()
         .setTitle("🔮 THE RITUAL BEGINS 🔮")
         .setDescription(`${wizardPhrase}\n\nStep forth, bind your essence.`)
         .setColor(0x4B0082);
-
-      await roleSelection.update({
-        content: "The ritual has begun.",
-        components: []
-      });
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
@@ -120,13 +116,19 @@ export default {
 
       const raffleMsg = await interaction.channel.send({ embeds: [raffleEmbed] });
 
-      // Save message ID for auto-end + updates
+      // Save message ID
       raffleStore.setMessageId(raffle.id, raffleMsg.id);
+
+      // Remove the role menu
+      await menuMessage.edit({
+        content: "The ritual has begun.",
+        components: []
+      });
     });
 
     collector.on("end", async collected => {
       if (collected.size === 0) {
-        await interaction.editReply({
+        await menuMessage.edit({
           content: "❌ Ritual cancelled — no role was selected.",
           components: []
         });
