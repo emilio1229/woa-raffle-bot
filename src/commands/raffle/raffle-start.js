@@ -70,7 +70,11 @@ export default {
 
     collector.on("collect", async roleSelection => {
       // SAFELY acknowledge the interaction
-      await roleSelection.deferUpdate();
+     await roleSelection.reply({
+  content: "🔮 Role invoked. The ritual begins.",
+  flags: 64 // ephemeral
+});
+
 
       const tagRole = roleSelection.values[0];
 
