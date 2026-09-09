@@ -58,14 +58,15 @@ export default {
         .setMaxValues(1)
     );
 
-   await interaction.reply({
-  content: "Choose the role whose essence will be invoked:",
-  components: [roleRow]
-});
+    // MUST reply first, THEN fetch the message
+    await interaction.reply({
+      content: "Choose the role whose essence will be invoked:",
+      components: [roleRow]
+    });
 
-const menuMessage = await interaction.fetchReply();
+    const menuMessage = await interaction.fetchReply();
 
-
+    // Collector now works correctly
     const collector = menuMessage.createMessageComponentCollector({
       filter: i => i.customId === "tagRole" && i.user.id === interaction.user.id,
       time: 60000
@@ -73,11 +74,7 @@ const menuMessage = await interaction.fetchReply();
 
     collector.on("collect", async roleSelection => {
       // SAFELY acknowledge the interaction
-     await roleSelection.followUp({
-  content: "🔮 Role invoked. The ritual begins.",
-  flags: 64 
-});
-
+      await roleSelection.deferUpdate();
 
       const tagRole = roleSelection.values[0];
 
