@@ -5,25 +5,30 @@ import { buildRaffleEmbed } from "../embedBuilder.js";
 export async function handleUnbindSoul(interaction, raffleId) {
   const userId = interaction.user.id;
 
-  // Remove entry
+  // Remove entry from the ritual
   raffleStore.removeEntry(raffleId, userId);
 
-  // Rebuild embed
+  // Fetch updated raffle
   const updated = raffleStore.findById(raffleId);
+
+  // Rebuild embed with updated soul count
   const embed = buildRaffleEmbed(updated, updated.entries.length);
 
-  // Update message
+  // Update the ritual message
   try {
     const channel = await interaction.client.channels.fetch(updated.channelId);
     const msg = await channel.messages.fetch(updated.messageId);
-    await msg.edit({ embeds: [embed] });
+
+    await msg.edit({
+      embeds: [embed]
+    });
   } catch (err) {
     console.error("unbindSoul embed update failed:", err);
   }
 
-  // Ephemeral confirmation
+  // Ritual‑themed ephemeral confirmation
   return interaction.followUp({
-    content: "🚨Your soul has been released from this raffle.🚷",
+    content: `💨 Your soul has withdrawn from the ritual.\n\n${updated.wizardPhrase}`,
     ephemeral: true
   });
 }
