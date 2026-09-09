@@ -58,10 +58,13 @@ export default {
         .setMaxValues(1)
     );
 
-    const menuMessage = await interaction.reply({
-      content: "Choose the role whose essence will be invoked:",
-      components: [roleRow]
-    });
+   await interaction.reply({
+  content: "Choose the role whose essence will be invoked:",
+  components: [roleRow]
+});
+
+const menuMessage = await interaction.fetchReply();
+
 
     const collector = menuMessage.createMessageComponentCollector({
       filter: i => i.customId === "tagRole" && i.user.id === interaction.user.id,
