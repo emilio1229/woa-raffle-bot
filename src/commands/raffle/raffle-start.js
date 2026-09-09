@@ -2,15 +2,13 @@ import {
   SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
-  RoleSelectMenuBuilder
+  RoleSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } from "discord.js";
 
 import { raffleStore } from "../../raffleStore.js";
 import { parseTime } from "../../utils/timeParser.js";
-
-// Replace with your actual role IDs
-const MEMBERS_ROLE_ID = "MEMBERS_ROLE_ID_HERE";
-const SUPPORTERS_ROLE_ID = "SUPPORTERS_ROLE_ID_HERE";
 
 export default {
   data: new SlashCommandBuilder()
@@ -48,6 +46,7 @@ export default {
       });
     }
 
+    // Role selection menu
     const roleRow = new ActionRowBuilder().addComponents(
       new RoleSelectMenuBuilder()
         .setCustomId("tagRole")
@@ -73,17 +72,13 @@ export default {
       await roleSelection.deferUpdate().catch(() => {});
 
       const tagRole = roleSelection.values[0];
+      const roleObj = interaction.guild.roles.cache.get(tagRole);
+      const roleName = roleObj ? roleObj.name : "Unknown Role";
 
-      let wizardPhrase;
+      // Dynamic wizard phrase
+      const wizardPhrase = `By arcane decree, the souls of <@&${tagRole}> — **${roleName}** — are summoned to the ritual.`;
 
-      if (tagRole === MEMBERS_ROLE_ID) {
-        wizardPhrase = `Let their souls be marked by <@&${tagRole}>, keepers of the ritual flame.`;
-      } else if (tagRole === SUPPORTERS_ROLE_ID) {
-        wizardPhrase = `By sigil and spark, the souls of <@&${tagRole}> are called to the ritual.`;
-      } else {
-        wizardPhrase = `<@&${tagRole}> has been invoked by arcane decree.`;
-      }
-
+      // Create raffle entry
       const raffle = raffleStore.create({
         guildId: interaction.guild.id,
         channelId: interaction.channel.id,
@@ -95,6 +90,7 @@ export default {
         entries: []
       });
 
+      // Ritual announcement
       const announcementEmbed = new EmbedBuilder()
         .setTitle("🔮 THE RITUAL BEGINS 🔮")
         .setDescription(`${wizardPhrase}\n\nStep forth, bind your essence.`)
@@ -102,6 +98,7 @@ export default {
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
+      // Raffle embed
       const raffleEmbed = new EmbedBuilder()
         .setTitle(`🎉 Raffle: ${prize} 🎉`)
         .addFields(
@@ -111,7 +108,23 @@ export default {
         )
         .setColor(0x4B0082);
 
-      const raffleMsg = await interaction.channel.send({ embeds: [raffleEmbed] });
+      // Bind / Unbind buttons
+      const buttonRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("bindSoul")
+          .setLabel("🔮 Bind Soul")
+          .setStyle(ButtonStyle.Primary),
+
+        new ButtonBuilder()
+          .setCustomId("unbindSoul")
+          .setLabel("💀 Unbind Soul")
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      const raffleMsg = await interaction.channel.send({
+        embeds: [raffleEmbed],
+        components: [buttonRow]
+      });
 
       raffleStore.setMessageId(raffle.id, raffleMsg.id);
 
