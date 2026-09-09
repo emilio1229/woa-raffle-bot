@@ -7,7 +7,6 @@ import {
 
 import { raffleStore } from "../../raffleStore.js";
 
-// Replace these with your actual role IDs
 const MEMBERS_ROLE_ID = "MEMBERS_ROLE_ID_HERE";
 const SUPPORTERS_ROLE_ID = "SUPPORTERS_ROLE_ID_HERE";
 
@@ -16,16 +15,10 @@ export default {
     .setName("raffle-start")
     .setDescription("Begin a new arcane ritual raffle.")
     .addStringOption(opt =>
-      opt
-        .setName("prize")
-        .setDescription("The offering for the ritual.")
-        .setRequired(true)
+      opt.setName("prize").setDescription("The offering for the ritual.").setRequired(true)
     )
     .addIntegerOption(opt =>
-      opt
-        .setName("duration")
-        .setDescription("Duration in minutes.")
-        .setRequired(true)
+      opt.setName("duration").setDescription("Duration in minutes.").setRequired(true)
     ),
 
   async execute(interaction) {
@@ -42,78 +35,68 @@ export default {
         .setMaxValues(1)
     );
 
-    // Send ephemeral role selector
-    await interaction.reply({
+    // Send NON-ephemeral so we can collect it
+    const menuMessage = await interaction.reply({
       content: "Choose the role whose essence will be invoked:",
-      components: [roleRow],
-      ephemeral: true
+      components: [roleRow]
     });
 
-    // Wait for the user's selection (ephemeral-safe)
-    const roleSelection = await interaction.awaitMessageComponent({
+    // Collector for role selection
+    const collector = menuMessage.createMessageComponentCollector({
       filter: i => i.customId === "tagRole" && i.user.id === interaction.user.id,
       time: 60000
     });
 
-    const tagRole = roleSelection.values[0];
+    collector.on("collect", async roleSelection => {
+      const tagRole = roleSelection.values[0];
 
-    // Wizard phrase logic
-    let wizardPhrase;
+      let wizardPhrase;
 
-    if (tagRole === MEMBERS_ROLE_ID) {
-      wizardPhrase = `Let their souls be marked by <@&${tagRole}>, keepers of the ritual flame.`;
-    } else if (tagRole === SUPPORTERS_ROLE_ID) {
-      wizardPhrase = `By sigil and spark, the souls of <@&${tagRole}> are called to the ritual.`;
-    } else {
-      wizardPhrase = `<@&${tagRole}> has been invoked by arcane decree.`;
-    }
+      if (tagRole === MEMBERS_ROLE_ID) {
+        wizardPhrase = `Let their souls be marked by <@&${tagRole}>, keepers of the ritual flame.`;
+      } else if (tagRole === SUPPORTERS_ROLE_ID) {
+        wizardPhrase = `By sigil and spark, the souls of <@&${tagRole}> are called to the ritual.`;
+      } else {
+        wizardPhrase = `<@&${tagRole}> has been invoked by arcane decree.`;
+      }
 
-    // GRAND ANNOUNCEMENT EMBED
-    const announcementEmbed = new EmbedBuilder()
-      .setTitle("🔮 THE RITUAL BEGINS 🔮")
-      .setDescription(
-        `${wizardPhrase}\n\n` +
-          `Step forth, bind your essence, and be counted among the chosen.`
-      )
-      .setColor(0x4B0082)
-      .setFooter({ text: "The circle awakens…" });
+      // Create raffle
+      const raffle = raffleStore.create({
+        guildId: interaction.guild.id,
+        channelId: interaction.channel.id,
+        prize,
+        endsAt: Date.now() + durationMs,
+        tagRole,
+        wizardPhrase,
+        ritualType: "soul-binding",
+        entries: []
+      });
 
-    // Create raffle in store
-    const raffle = raffleStore.create({
-      guildId: interaction.guild.id,
-      channelId: interaction.channel.id,
-      prize,
-      endsAt: Date.now() + durationMs,
-      tagRole,
-      wizardPhrase,
-      ritualType: "soul-binding",
-      entries: []
+      // Announcement embed
+      const announcementEmbed = new EmbedBuilder()
+        .setTitle("🔮 THE RITUAL BEGINS 🔮")
+        .setDescription(`${wizardPhrase}\n\nStep forth, bind your essence.`)
+        .setColor(0x4B0082);
+
+      await roleSelection.update({
+        content: "The ritual has begun.",
+        components: []
+      });
+
+      await interaction.channel.send({ embeds: [announcementEmbed] });
+
+      const raffleEmbed = new EmbedBuilder()
+        .setTitle(`🎉 Raffle: ${prize} 🎉`)
+        .addFields(
+          { name: "Prize", value: prize, inline: true },
+          { name: "Duration", value: `${duration} minutes`, inline: true },
+          { name: "Invocation", value: wizardPhrase }
+        )
+        .setColor(0x4B0082);
+
+      const raffleMsg = await interaction.channel.send({ embeds: [raffleEmbed] });
+
+      raffleStore.setMessageId(raffle.id, raffleMsg.id);
     });
-
-    // STANDARD RITUAL RAFFLE EMBED
-    const raffleEmbed = new EmbedBuilder()
-      .setTitle(`🎉 Raffle: ${prize} 🎉`)
-      .addFields(
-        { name: "Prize", value: prize, inline: true },
-        { name: "Duration", value: `${duration} minutes`, inline: true },
-        { name: "Arcane Invocation", value: wizardPhrase, inline: false }
-      )
-      .setColor(0x4B0082);
-
-    // Acknowledge the role selection
-    await roleSelection.update({
-      content: "The ritual has begun.",
-      components: []
-    });
-
-    // Send both embeds publicly
-    await interaction.channel.send({ embeds: [announcementEmbed] });
-
-    const raffleMsg = await interaction.channel.send({
-      embeds: [raffleEmbed]
-    });
-
-    // Save messageId for autoEndManager + bind/unbind
-    raffleStore.setMessageId(raffle.id, raffleMsg.id);
   }
 };
