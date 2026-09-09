@@ -31,7 +31,6 @@ export default {
     const prize = interaction.options.getString("prize");
     const durationInput = interaction.options.getString("duration");
 
-    // Parse natural-language time
     const endsAt = parseTime(durationInput);
 
     if (!endsAt || isNaN(endsAt)) {
@@ -49,7 +48,6 @@ export default {
       });
     }
 
-    // Role selection menu
     const roleRow = new ActionRowBuilder().addComponents(
       new RoleSelectMenuBuilder()
         .setCustomId("tagRole")
@@ -58,7 +56,6 @@ export default {
         .setMaxValues(1)
     );
 
-    // MUST reply first, THEN fetch the message
     await interaction.reply({
       content: "Choose the role whose essence will be invoked:",
       components: [roleRow]
@@ -66,15 +63,14 @@ export default {
 
     const menuMessage = await interaction.fetchReply();
 
-    // Collector now works correctly
     const collector = menuMessage.createMessageComponentCollector({
       filter: i => i.customId === "tagRole" && i.user.id === interaction.user.id,
       time: 60000
     });
 
     collector.on("collect", async roleSelection => {
-      // SAFELY acknowledge the interaction
-      await roleSelection.deferUpdate();
+      // SAFEST ACKNOWLEDGMENT FOR RAILWAY
+      await roleSelection.update({});
 
       const tagRole = roleSelection.values[0];
 
@@ -88,7 +84,6 @@ export default {
         wizardPhrase = `<@&${tagRole}> has been invoked by arcane decree.`;
       }
 
-      // Create raffle entry
       const raffle = raffleStore.create({
         guildId: interaction.guild.id,
         channelId: interaction.channel.id,
@@ -100,7 +95,6 @@ export default {
         entries: []
       });
 
-      // Ritual announcement
       const announcementEmbed = new EmbedBuilder()
         .setTitle("🔮 THE RITUAL BEGINS 🔮")
         .setDescription(`${wizardPhrase}\n\nStep forth, bind your essence.`)
@@ -108,7 +102,6 @@ export default {
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
-      // Raffle embed
       const raffleEmbed = new EmbedBuilder()
         .setTitle(`🎉 Raffle: ${prize} 🎉`)
         .addFields(
@@ -120,10 +113,8 @@ export default {
 
       const raffleMsg = await interaction.channel.send({ embeds: [raffleEmbed] });
 
-      // Save message ID
       raffleStore.setMessageId(raffle.id, raffleMsg.id);
 
-      // Remove the role menu
       await menuMessage.edit({
         content: "The ritual has begun.",
         components: []
