@@ -7,52 +7,66 @@ export async function handleBindSoul(interaction, raffleId) {
   if (!raffle) {
     return interaction.reply({
       content: "❌ This ritual has already ended.",
-      ephemeral: true
+      flags: 64
     });
   }
 
   const userId = interaction.user.id;
 
-  // Prevent double-binding
   if (raffle.entries.includes(userId)) {
     return interaction.reply({
-      content: "✨ Your soul is **already bound** to this ritual.",
-      ephemeral: true
+      content: "✨ Your soul is already bound to this ritual.",
+      flags: 64
     });
   }
 
-  // Add soul
   raffle.entries.push(userId);
   raffleStore.save(raffle);
 
-  // Your arcane glow animation (kept exactly as you had it)
   const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
+  const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
   const embed = new EmbedBuilder()
-    .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Soul Bound`)
+    .setTitle(`${glowSymbol} Essence Convergence`)
     .setDescription(
-      `Your essence has been **woven into the ritual circle**.\n\n` +
-      `🩸 **Bound Souls:** ${raffle.entries.length}`
+      [
+        `The ley‑threads shimmer as your essence enters the circle.`,
+        `A faint hum echoes — the ritual acknowledges your presence.`,
+        ``,
+        `🔮 **Arcane Binding Complete**`,
+        `🩸 **Souls Intertwined:** ${raffle.entries.length}`,
+        ``,
+        `⟐ The sigils flare briefly, marking your arrival in the astral ledger.`
+      ].join("\n")
     )
-    .setColor(0x4B0082);
+    .setColor(0x5A00A0)
+    .setFooter({ text: "The ritual deepens…" });
 
-  // Update main raffle embed
   try {
     const channel = await interaction.client.channels.fetch(raffle.channelId);
     const msg = await channel.messages.fetch(raffle.messageId);
 
-    // Rebuild raffle embed with updated soul count
     const updatedEmbed = new EmbedBuilder()
-      .setTitle(`🎉 Raffle: ${raffle.prize} 🎉`)
-      .addFields(
-        { name: "Prize", value: raffle.prize, inline: true },
-        { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
-        { name: "Invocation", value: raffle.wizardPhrase },
-        { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
-      )
-      .setColor(0x4B0082);
+      .setTitle(`🔮 ${raffle.name}`)
+      .setColor(0x4B0082)
+      .setDescription(
+        [
+          `A ritual has been cast. The circle hums with quiet power.`,
+          ``,
+          `**✨ Invocation**`,
+          `⟐ ${raffle.invocationText}`,
+          ``,
+          `**🎁 Prize**`,
+          `${raffle.prize}`,
+          ``,
+          `**⏳ Ends At**`,
+          `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
+          ``,
+          `**🩸 Bound Souls**`,
+          `${raffle.entries.length}`
+        ].join("\n")
+      );
 
-    // Preserve your buttons
     await msg.edit({
       embeds: [updatedEmbed],
       components: msg.components
@@ -61,9 +75,8 @@ export async function handleBindSoul(interaction, raffleId) {
     console.error("bindSoul embed update failed:", err);
   }
 
-  // Ephemeral confirmation (kept exactly as you had it)
   return interaction.reply({
     embeds: [embed],
-    ephemeral: true
+    flags: 64
   });
 }
