@@ -11,7 +11,7 @@ import { raffleStore } from "../../raffleStore.js";
 const MEMBERS_ROLE_ID = '1441536017810329801';
 const SUPPORTERS_ROLE_ID = '1469217699648245843';
 
-export const command = {
+export default {
   data: new SlashCommandBuilder()
     .setName('raffle-start')
     .setDescription('Start a new arcane raffle.')
