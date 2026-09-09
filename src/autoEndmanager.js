@@ -4,67 +4,63 @@ import { EmbedBuilder } from "discord.js";
 
 export function startAutoEndLoop(client) {
   setInterval(async () => {
-    const now = Date.now();
     const raffles = raffleStore.all();
 
     for (const raffle of raffles) {
       if (raffle.ended) continue;
-      if (raffle.endsAt > now) continue;
+      if (Date.now() < raffle.endsAt) continue;
 
-      // Mark ended
-      raffleStore.markEnded(raffle.id);
-
-      // Pick winner
-      let winnerId = null;
-      if (raffle.entries.length > 0) {
-        const randomIndex = Math.floor(Math.random() * raffle.entries.length);
-        winnerId = raffle.entries[randomIndex];
-      }
+      // Mark ended in store
+      raffleStore.update(raffle.id, { ended: true });
 
       try {
         const channel = await client.channels.fetch(raffle.channelId);
-        const message = await channel.messages.fetch(raffle.messageId);
+        if (!channel) continue;
 
-        // --- RITUAL ENDING PHRASES ---
-        let endingPhrase;
+        const message = await channel.messages.fetch(raffle.messageId).catch(() => null);
+        if (!message) continue;
 
-        if (winnerId) {
-          endingPhrase =
-            `🔮 The ritual has spoken.\n\n` +
-            `By ancient decree, **<@${winnerId}>** has been chosen.\n\n` +
-            `The circle falls silent…`;
-        } else {
-          endingPhrase =
-            `💀 The ritual found no souls worthy.\n\n` +
-            `No essence was bound to the circle.\n\n` +
-            `The sigils fade into darkness…`;
+        // Pick winner
+        let winnerId = null;
+        if (raffle.entries.length > 0) {
+          const randomIndex = Math.floor(Math.random() * raffle.entries.length);
+          winnerId = raffle.entries[randomIndex];
         }
 
-        // --- RITUAL COMPLETE EMBED ---
-        const ritualEmbed = new EmbedBuilder()
-          .setTitle("🔮 THE RITUAL CONCLUDES 🔮")
+        // Final embed with arcane glow
+        const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
+        const finalEmbed = new EmbedBuilder()
+          .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} The Ritual Has Concluded`)
           .setDescription(
-            `${raffle.wizardPhrase}\n\n` + // The original incantation
-            endingPhrase
+            winnerId
+              ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${raffle.prize}`
+              : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
+          )
+          .addFields(
+            { name: "Prize", value: raffle.prize, inline: true },
+            { name: "Invocation", value: raffle.wizardPhrase },
+            { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
           )
           .setColor(0x4B0082)
           .setFooter({ text: "The circle grows quiet…" });
 
-        // Update original raffle message
+        // Remove buttons + update embed
         await message.edit({
-          content: winnerId
-            ? `🔮 <@${winnerId}> has been chosen by the ritual!`
-            : `💀 The ritual found no souls to bind.`,
-          embeds: [ritualEmbed],
+          embeds: [finalEmbed],
           components: []
         });
 
-        // Send a public ritual completion announcement
-        await channel.send({ embeds: [ritualEmbed] });
-
+        // Announce winner
+        if (winnerId) {
+          await channel.send(
+            `🔮 <@${winnerId}> has been chosen by the ritual! The prize: **${raffle.prize}**`
+          );
+        } else {
+          await channel.send(`💀 The ritual found no souls to bind. No winner was chosen.`);
+        }
       } catch (err) {
         console.error("Auto-end error:", err);
       }
     }
-  }, 5000);
+  }, 5000); // check every 5 seconds
 }
