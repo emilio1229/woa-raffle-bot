@@ -70,7 +70,7 @@ export default {
 
     collector.on("collect", async roleSelection => {
       // SAFEST ACKNOWLEDGMENT FOR RAILWAY
-      await roleSelection.update({});
+      await roleSelection.deferUpdate().catch(() => {});
 
       const tagRole = roleSelection.values[0];
 
