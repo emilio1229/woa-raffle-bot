@@ -1,5 +1,6 @@
+// src/autoEndManager.js
 import { raffleStore } from "./raffleStore.js";
-import { buildRaffleEmbed } from "./embedBuilder.js";
+import { EmbedBuilder } from "discord.js";
 
 export function startAutoEndLoop(client) {
   setInterval(async () => {
@@ -24,21 +25,42 @@ export function startAutoEndLoop(client) {
         const channel = await client.channels.fetch(raffle.channelId);
         const message = await channel.messages.fetch(raffle.messageId);
 
-        // Build final embed
-        const finalEmbed = buildRaffleEmbed(
-          raffle,
-          raffle.entries.length,
-          winnerId
-        );
+        // --- RITUAL ENDING PHRASES ---
+        let endingPhrase;
 
-        // Update message
+        if (winnerId) {
+          endingPhrase =
+            `🔮 The ritual has spoken.\n\n` +
+            `By ancient decree, **<@${winnerId}>** has been chosen.\n\n` +
+            `The circle falls silent…`;
+        } else {
+          endingPhrase =
+            `💀 The ritual found no souls worthy.\n\n` +
+            `No essence was bound to the circle.\n\n` +
+            `The sigils fade into darkness…`;
+        }
+
+        // --- RITUAL COMPLETE EMBED ---
+        const ritualEmbed = new EmbedBuilder()
+          .setTitle("🔮 THE RITUAL CONCLUDES 🔮")
+          .setDescription(
+            `${raffle.wizardPhrase}\n\n` + // The original incantation
+            endingPhrase
+          )
+          .setColor(0x4B0082)
+          .setFooter({ text: "The circle grows quiet…" });
+
+        // Update original raffle message
         await message.edit({
           content: winnerId
             ? `🔮 <@${winnerId}> has been chosen by the ritual!`
             : `💀 The ritual found no souls to bind.`,
-          embeds: [finalEmbed],
+          embeds: [ritualEmbed],
           components: []
         });
+
+        // Send a public ritual completion announcement
+        await channel.send({ embeds: [ritualEmbed] });
 
       } catch (err) {
         console.error("Auto-end error:", err);
