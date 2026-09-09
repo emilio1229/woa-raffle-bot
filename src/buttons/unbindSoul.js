@@ -23,14 +23,10 @@ export async function handleUnbindSoul(interaction, raffleId) {
 
   // Remove soul
   raffle.entries = raffle.entries.filter(id => id !== userId);
+  raffleStore.save(raffle);
 
-  // Arcane glow animation (dark variant)
-  const glow = [
-    "💀🌑",
-    "💀🕯️",
-    "💀🌫️",
-    "💀⚫"
-  ];
+  // Your dark arcane glow animation (kept exactly as you had it)
+  const glow = ["💀🌑", "💀🕯️", "💀🌫️", "💀⚫"];
 
   const embed = new EmbedBuilder()
     .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Soul Withdrawn`)
@@ -55,11 +51,16 @@ export async function handleUnbindSoul(interaction, raffleId) {
       )
       .setColor(0x4B0082);
 
-    await msg.edit({ embeds: [updatedEmbed], components: msg.components });
+    // Preserve your buttons
+    await msg.edit({
+      embeds: [updatedEmbed],
+      components: msg.components
+    });
   } catch (err) {
     console.error("unbindSoul embed update failed:", err);
   }
 
+  // Ephemeral confirmation (kept exactly as you had it)
   return interaction.reply({
     embeds: [embed],
     ephemeral: true
