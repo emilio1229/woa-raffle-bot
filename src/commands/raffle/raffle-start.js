@@ -26,7 +26,6 @@ export default {
     const duration = interaction.options.getInteger("duration");
     const durationMs = duration * 60 * 1000;
 
-    // Build role selector
     const roleRow = new ActionRowBuilder().addComponents(
       new RoleSelectMenuBuilder()
         .setCustomId("tagRole")
@@ -35,13 +34,11 @@ export default {
         .setMaxValues(1)
     );
 
-    // Send NON-ephemeral so we can collect it
     const menuMessage = await interaction.reply({
       content: "Choose the role whose essence will be invoked:",
       components: [roleRow]
     });
 
-    // Collector for role selection
     const collector = menuMessage.createMessageComponentCollector({
       filter: i => i.customId === "tagRole" && i.user.id === interaction.user.id,
       time: 60000
@@ -60,7 +57,6 @@ export default {
         wizardPhrase = `<@&${tagRole}> has been invoked by arcane decree.`;
       }
 
-      // Create raffle
       const raffle = raffleStore.create({
         guildId: interaction.guild.id,
         channelId: interaction.channel.id,
@@ -72,7 +68,6 @@ export default {
         entries: []
       });
 
-      // Announcement embed
       const announcementEmbed = new EmbedBuilder()
         .setTitle("🔮 THE RITUAL BEGINS 🔮")
         .setDescription(`${wizardPhrase}\n\nStep forth, bind your essence.`)
