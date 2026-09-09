@@ -23,7 +23,7 @@ export async function handleUnbindSoul(interaction, raffleId) {
 
   // Ephemeral confirmation
   return interaction.followUp({
-    content: "Your soul has been released from this raffle.",
+    content: "🚨Your soul has been released from this raffle.🚷",
     ephemeral: true
   });
 }
