@@ -2,9 +2,9 @@
 import { raffleStore } from "./raffleStore.js";
 import { buildRaffleEmbed } from "./embedBuilder.js";
 
-// ⭐ Corrected imports — matches your actual folder structure
-import { handleBindSoul } from "./commands/raffle/bindSoul.js";
-import { handleUnbindSoul } from "./commands/raffle/unbindSoul.js";
+// ⭐ Correct imports based on your actual folder structure
+import { handleBindSoul } from "./buttons/bindSoul.js";
+import { handleUnbindSoul } from "./buttons/unbindSoul.js";
 
 /**
  * Named export required by src/index.js
@@ -30,7 +30,6 @@ export async function handleInteraction(interaction) {
       }
 
       const [action, raffleId] = interaction.customId.split("_");
-      const userId = interaction.user.id;
       const raffle = raffleStore.findById(raffleId);
 
       if (!raffle) {
