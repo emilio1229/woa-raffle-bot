@@ -2,9 +2,9 @@
 import { raffleStore } from "./raffleStore.js";
 import { buildRaffleEmbed } from "./embedBuilder.js";
 
-// ⭐ NEW: Import your bind/unbind handlers
-import { handleBindSoul } from "./interactions/bindSoul.js";
-import { handleUnbindSoul } from "./interactions/unbindSoul.js";
+// ⭐ Corrected imports — matches your actual folder structure
+import { handleBindSoul } from "./commands/raffle/bindSoul.js";
+import { handleUnbindSoul } from "./commands/raffle/unbindSoul.js";
 
 /**
  * Named export required by src/index.js
@@ -38,7 +38,7 @@ export async function handleInteraction(interaction) {
         return;
       }
 
-      // ⭐ FIXED: Use your bind/unbind handlers so ephemeral messages work
+      // ⭐ Use your bind/unbind handlers
       if (action === "enter") {
         await handleBindSoul(interaction, raffleId);
         return;
@@ -93,7 +93,6 @@ export async function handleInteraction(interaction) {
         return;
       }
 
-      // other select menus can be handled here
       return;
     }
   } catch (err) {
