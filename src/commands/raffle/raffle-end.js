@@ -1,89 +1,53 @@
-﻿// src/commands/raffle/raffle-end.js
-import { SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+// src/commands/raffle/raffle-end.js
+import { SlashCommandBuilder } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
 import { buildRaffleEmbed } from "../../embedBuilder.js";
-import { buildRaffleSelectMenu } from "../../components.js";
 
-export const data = new SlashCommandBuilder()
-  .setName("raffle-end")
-  .setDescription("End an active raffle immediately.")
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-  .setDMPermission(false)
-  .addStringOption(opt =>
-    opt.setName("id")
-      .setDescription("Raffle id or messageId (optional). Leave empty to pick from active raffles.")
-      .setRequired(false)
-  );
+export default {
+  data: new SlashCommandBuilder()
+    .setName("raffle-end")
+    .setDescription("Manually complete an active ritual raffle."),
 
-async function finishRaffle(interaction, raffle) {
-  raffleStore.markEnded(raffle.id);
-  const updated = raffleStore.findById(raffle.id);
-  const entries = updated.entries ?? [];
-  let resultText;
-  if (entries.length === 0) {
-    resultText = "No entries — no winner.";
-  } else {
-    const winner = entries[Math.floor(Math.random() * entries.length)];
-    resultText = `Winner: <@${winner}>`;
-  }
+  async execute(interaction) {
+    const active = raffleStore.getActive();
 
-  try {
-    const channel = await interaction.client.channels.fetch(updated.channelId);
-    const msg = await channel.messages.fetch(updated.messageId);
-    const embed = buildRaffleEmbed(updated, updated.entries.length);
-    await msg.edit({ embeds: [embed], components: [] });
-  } catch (err) {
-    // ignore if we can't edit original message
-  }
+    if (!active) {
+      return interaction.reply({
+        content: "💀 No active ritual exists.",
+        ephemeral: true
+      });
+    }
 
-  return resultText;
-}
+    // End the ritual
+    raffleStore.markEnded(active.id);
 
-export async function execute(interaction) {
-  let deferred = false;
-  try {
+    const updated = raffleStore.findById(active.id);
+    const entries = updated.entries ?? [];
+
+    let winner = null;
+    let resultText;
+
+    if (entries.length === 0) {
+      resultText = "💀 No souls were bound — the ritual yields no winner.";
+    } else {
+      winner = entries[Math.floor(Math.random() * entries.length)];
+      resultText = `🔮 The ritual has chosen: <@${winner}>`;
+    }
+
+    const endingEmbed = buildRaffleEmbed(updated, entries.length, winner);
+
+    // Update the original ritual message
     try {
-      await interaction.deferReply({ ephemeral: true });
-      deferred = true;
-    } catch {
-      deferred = false;
+      const channel = await interaction.client.channels.fetch(updated.channelId);
+      const msg = await channel.messages.fetch(updated.messageId);
+      await msg.edit({ embeds: [endingEmbed], components: [] });
+    } catch (err) {
+      console.error("raffle-end message update failed:", err);
     }
 
-    const input = interaction.options.getString("id")?.trim();
-
-    if (input) {
-      let raffle = raffleStore.findById(input);
-      if (!raffle) raffle = raffleStore.findByMessageId(input);
-      if (!raffle) {
-        const msg = "Raffle not found for that id/messageId.";
-        if (deferred) return interaction.editReply({ content: msg });
-        try { return interaction.reply({ content: msg, flags: 64 }); } catch { return interaction.channel.send(msg); }
-      }
-
-      const resultText = await finishRaffle(interaction, raffle);
-      const reply = `Raffle ended. ${resultText}`;
-      if (deferred) return interaction.editReply({ content: reply });
-      try { return interaction.reply({ content: reply, flags: 64 }); } catch { return interaction.channel.send(reply); }
-    }
-
-    const active = raffleStore.activeInGuild(interaction.guild.id);
-    if (!active || active.length === 0) {
-      const msg = "There are no active raffles in this server.";
-      if (deferred) return interaction.editReply({ content: msg });
-      try { return interaction.reply({ content: msg, flags: 64 }); } catch { return interaction.channel.send(msg); }
-    }
-
-    const row = buildRaffleSelectMenu(active, "select_end_raffle");
-    if (deferred) return interaction.editReply({ content: "Choose a raffle to end:", components: [row] });
-    try { return interaction.reply({ content: "Choose a raffle to end:", components: [row], flags: 64 }); } catch { return interaction.channel.send({ content: "Choose a raffle to end:", components: [row] }); }
-  } catch (err) {
-    console.error("raffle-end error:", err);
-    try {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: "An error occurred while ending the raffle.", flags: 64 });
-      } else {
-        await interaction.editReply({ content: "An error occurred while ending the raffle." });
-      }
-    } catch {}
+    return interaction.reply({
+      content: resultText,
+      ephemeral: true
+    });
   }
-}
+};
