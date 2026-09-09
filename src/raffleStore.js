@@ -1,4 +1,4 @@
-﻿// src/raffleStore.js
+// src/raffleStore.js
 import fs from "fs";
 import path from "path";
 
@@ -25,16 +25,25 @@ export const raffleStore = {
   create(partial) {
     const data = read();
     const id = Date.now().toString();
+
     const raffle = {
       id,
       guildId: partial.guildId,
       channelId: partial.channelId,
       messageId: partial.messageId ?? null,
+
+      // --- RITUAL SYSTEM ADDITIONS ---
+      tagRole: partial.tagRole ?? null,          // The role invoked in the ritual
+      wizardPhrase: partial.wizardPhrase ?? "", // The incantation used
+      ritualType: partial.ritualType ?? "soul-binding", // Future expansion
+
+      // --- EXISTING FIELDS ---
       prize: partial.prize,
       endsAt: partial.endsAt,
       entries: partial.entries ?? [],
       ended: partial.ended ?? false
     };
+
     data.push(raffle);
     write(data);
     return raffle;
@@ -44,6 +53,7 @@ export const raffleStore = {
     const data = read();
     const idx = data.findIndex(r => r.id === id);
     if (idx === -1) return null;
+
     data[idx] = { ...data[idx], ...patch };
     write(data);
     return data[idx];
@@ -72,6 +82,7 @@ export const raffleStore = {
   addEntry(id, userId) {
     const raffle = this.findById(id);
     if (!raffle) return null;
+
     if (!raffle.entries.includes(userId)) {
       raffle.entries.push(userId);
       this.update(id, { entries: raffle.entries });
@@ -82,6 +93,7 @@ export const raffleStore = {
   removeEntry(id, userId) {
     const raffle = this.findById(id);
     if (!raffle) return null;
+
     raffle.entries = raffle.entries.filter(u => u !== userId);
     this.update(id, { entries: raffle.entries });
     return raffle;
