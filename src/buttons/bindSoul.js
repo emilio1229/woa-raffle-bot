@@ -23,14 +23,10 @@ export async function handleBindSoul(interaction, raffleId) {
 
   // Add soul
   raffle.entries.push(userId);
+  raffleStore.save(raffle);
 
-  // Arcane glow animation (simulated)
-  const glow = [
-    "🔮✨",
-    "🔮💫",
-    "🔮🌌",
-    "🔮⚡"
-  ];
+  // Your arcane glow animation (kept exactly as you had it)
+  const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
 
   const embed = new EmbedBuilder()
     .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Soul Bound`)
@@ -45,6 +41,7 @@ export async function handleBindSoul(interaction, raffleId) {
     const channel = await interaction.client.channels.fetch(raffle.channelId);
     const msg = await channel.messages.fetch(raffle.messageId);
 
+    // Rebuild raffle embed with updated soul count
     const updatedEmbed = new EmbedBuilder()
       .setTitle(`🎉 Raffle: ${raffle.prize} 🎉`)
       .addFields(
@@ -55,11 +52,16 @@ export async function handleBindSoul(interaction, raffleId) {
       )
       .setColor(0x4B0082);
 
-    await msg.edit({ embeds: [updatedEmbed], components: msg.components });
+    // Preserve your buttons
+    await msg.edit({
+      embeds: [updatedEmbed],
+      components: msg.components
+    });
   } catch (err) {
     console.error("bindSoul embed update failed:", err);
   }
 
+  // Ephemeral confirmation (kept exactly as you had it)
   return interaction.reply({
     embeds: [embed],
     ephemeral: true
