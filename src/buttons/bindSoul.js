@@ -23,7 +23,7 @@ export async function handleBindSoul(interaction, raffleId) {
 
   // Ephemeral confirmation
   return interaction.followUp({
-    content: "Your soul has been bound to this raffle.",
+    content: "🔮Your soul has been bound to this raffle.🩸",
     ephemeral: true
   });
 }
