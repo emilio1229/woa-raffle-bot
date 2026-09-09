@@ -34,7 +34,7 @@ export async function handleUnbindSoul(interaction, raffleId) {
     console.error("Failed to update ritual message:", err);
   }
 
-  return interaction.reply({
+  return interaction.followUp({
     content: "🚪 Your soul has been withdrawn from the ritual.",
     ephemeral: true
   });
