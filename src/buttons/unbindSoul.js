@@ -7,51 +7,66 @@ export async function handleUnbindSoul(interaction, raffleId) {
   if (!raffle) {
     return interaction.reply({
       content: "❌ This ritual has already ended.",
-      ephemeral: true
+      flags: 64
     });
   }
 
   const userId = interaction.user.id;
 
-  // Prevent unbinding if not bound
   if (!raffle.entries.includes(userId)) {
     return interaction.reply({
-      content: "✨ Your soul is **not bound** to this ritual.",
-      ephemeral: true
+      content: "✨ Your soul is not bound to this ritual.",
+      flags: 64
     });
   }
 
-  // Remove soul
   raffle.entries = raffle.entries.filter(id => id !== userId);
   raffleStore.save(raffle);
 
-  // Your dark arcane glow animation (kept exactly as you had it)
   const glow = ["💀🌑", "💀🕯️", "💀🌫️", "💀⚫"];
+  const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
   const embed = new EmbedBuilder()
-    .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Soul Withdrawn`)
+    .setTitle(`${glowSymbol} Soul Withdrawn`)
     .setDescription(
-      `Your essence has been **released from the ritual circle**.\n\n` +
-      `🩸 **Bound Souls:** ${raffle.entries.length}`
+      [
+        `Your essence slips free from the ritual circle.`,
+        `The sigils dim slightly as your presence fades.`,
+        ``,
+        `💀 **Soul Released**`,
+        `🩸 **Remaining Souls:** ${raffle.entries.length}`,
+        ``,
+        `⟐ The astral ledger adjusts, noting your departure.`
+      ].join("\n")
     )
-    .setColor(0x2E003E);
+    .setColor(0x2E003E)
+    .setFooter({ text: "The ritual shifts…" });
 
-  // Update main raffle embed
   try {
     const channel = await interaction.client.channels.fetch(raffle.channelId);
     const msg = await channel.messages.fetch(raffle.messageId);
 
     const updatedEmbed = new EmbedBuilder()
-      .setTitle(`🎉 Raffle: ${raffle.prize} 🎉`)
-      .addFields(
-        { name: "Prize", value: raffle.prize, inline: true },
-        { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
-        { name: "Invocation", value: raffle.wizardPhrase },
-        { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
-      )
-      .setColor(0x4B0082);
+      .setTitle(`🔮 ${raffle.name}`)
+      .setColor(0x4B0082)
+      .setDescription(
+        [
+          `A ritual has been cast. The circle hums with quiet power.`,
+          ``,
+          `**✨ Invocation**`,
+          `⟐ ${raffle.invocationText}`,
+          ``,
+          `**🎁 Prize**`,
+          `${raffle.prize}`,
+          ``,
+          `**⏳ Ends At**`,
+          `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
+          ``,
+          `**🩸 Bound Souls**`,
+          `${raffle.entries.length}`
+        ].join("\n")
+      );
 
-    // Preserve your buttons
     await msg.edit({
       embeds: [updatedEmbed],
       components: msg.components
@@ -60,9 +75,8 @@ export async function handleUnbindSoul(interaction, raffleId) {
     console.error("unbindSoul embed update failed:", err);
   }
 
-  // Ephemeral confirmation (kept exactly as you had it)
   return interaction.reply({
     embeds: [embed],
-    ephemeral: true
+    flags: 64
   });
 }
