@@ -34,7 +34,7 @@ export async function handleBindSoul(interaction, raffleId) {
     console.error("Failed to update ritual message:", err);
   }
 
-  return interaction.reply({
+  return interaction.followUp({
     content: "🩸 Your soul has been offered to the ritual.",
     ephemeral: true
   });
