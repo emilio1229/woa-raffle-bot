@@ -8,8 +8,8 @@ import {
 import { raffleStore } from "../../raffleStore.js";
 
 // Replace these with your actual role IDs
-const MEMBERS_ROLE_ID = 'MEMBERS_ROLE_ID_HERE';
-const SUPPORTERS_ROLE_ID = 'SUPPORTERS_ROLE_ID_HERE';
+const MEMBERS_ROLE_ID = '1441536017810329801';
+const SUPPORTERS_ROLE_ID = '1469217699648245843';
 
 export const command = {
   data: new SlashCommandBuilder()
