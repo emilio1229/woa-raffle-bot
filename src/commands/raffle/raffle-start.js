@@ -6,7 +6,9 @@ import {
 } from "discord.js";
 
 import { raffleStore } from "../../raffleStore.js";
+import { parseTime } from "../../utils/timeParser.js";
 
+// Replace these with your actual role IDs
 const MEMBERS_ROLE_ID = "MEMBERS_ROLE_ID_HERE";
 const SUPPORTERS_ROLE_ID = "SUPPORTERS_ROLE_ID_HERE";
 
@@ -15,17 +17,39 @@ export default {
     .setName("raffle-start")
     .setDescription("Begin a new arcane ritual raffle.")
     .addStringOption(opt =>
-      opt.setName("prize").setDescription("The offering for the ritual.").setRequired(true)
+      opt.setName("prize")
+        .setDescription("The offering for the ritual.")
+        .setRequired(true)
     )
-    .addIntegerOption(opt =>
-      opt.setName("duration").setDescription("Duration in minutes.").setRequired(true)
+    .addStringOption(opt =>
+      opt.setName("duration")
+        .setDescription("Duration (10m, 2h, tomorrow 5pm, 06/18/2026 2:30 PM, etc.)")
+        .setRequired(true)
     ),
 
   async execute(interaction) {
     const prize = interaction.options.getString("prize");
-    const duration = interaction.options.getInteger("duration");
-    const durationMs = duration * 60 * 1000;
+    const durationInput = interaction.options.getString("duration");
 
+    // Parse natural-language time
+    const endsAt = parseTime(durationInput);
+
+    if (!endsAt || isNaN(endsAt)) {
+      return interaction.reply({
+        content: "❌ I could not understand that time format.",
+        flags: 64
+      });
+    }
+
+    const durationMs = endsAt - Date.now();
+    if (durationMs <= 0) {
+      return interaction.reply({
+        content: "❌ That time is already in the past.",
+        flags: 64
+      });
+    }
+
+    // Role selection menu
     const roleRow = new ActionRowBuilder().addComponents(
       new RoleSelectMenuBuilder()
         .setCustomId("tagRole")
@@ -34,11 +58,13 @@ export default {
         .setMaxValues(1)
     );
 
+    // Must NOT be ephemeral (collectors cannot capture ephemeral)
     const menuMessage = await interaction.reply({
       content: "Choose the role whose essence will be invoked:",
       components: [roleRow]
     });
 
+    // Collector for role selection
     const collector = menuMessage.createMessageComponentCollector({
       filter: i => i.customId === "tagRole" && i.user.id === interaction.user.id,
       time: 60000
@@ -57,17 +83,19 @@ export default {
         wizardPhrase = `<@&${tagRole}> has been invoked by arcane decree.`;
       }
 
+      // Create raffle entry in store
       const raffle = raffleStore.create({
         guildId: interaction.guild.id,
         channelId: interaction.channel.id,
         prize,
-        endsAt: Date.now() + durationMs,
+        endsAt,
         tagRole,
         wizardPhrase,
         ritualType: "soul-binding",
         entries: []
       });
 
+      // Ritual announcement embed
       const announcementEmbed = new EmbedBuilder()
         .setTitle("🔮 THE RITUAL BEGINS 🔮")
         .setDescription(`${wizardPhrase}\n\nStep forth, bind your essence.`)
@@ -80,18 +108,29 @@ export default {
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
+      // Raffle embed
       const raffleEmbed = new EmbedBuilder()
         .setTitle(`🎉 Raffle: ${prize} 🎉`)
         .addFields(
           { name: "Prize", value: prize, inline: true },
-          { name: "Duration", value: `${duration} minutes`, inline: true },
+          { name: "Ends At", value: `<t:${Math.floor(endsAt / 1000)}:F>`, inline: true },
           { name: "Invocation", value: wizardPhrase }
         )
         .setColor(0x4B0082);
 
       const raffleMsg = await interaction.channel.send({ embeds: [raffleEmbed] });
 
+      // Save message ID for auto-end + updates
       raffleStore.setMessageId(raffle.id, raffleMsg.id);
+    });
+
+    collector.on("end", async collected => {
+      if (collected.size === 0) {
+        await interaction.editReply({
+          content: "❌ Ritual cancelled — no role was selected.",
+          components: []
+        });
+      }
     });
   }
 };
