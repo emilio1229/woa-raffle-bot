@@ -24,15 +24,25 @@ class RaffleStore {
     }
   }
 
+  // Return ALL raffles (needed for autoEndManager)
+  all() {
+    return this.raffles;
+  }
+
   // Get raffle by ID
   getById(id) {
     return this.raffles.find(r => r.id === id);
   }
 
-  // Get raffle by message ID (needed for buttons)
+  // Get raffle ID by message ID
   getIdByMessage(messageId) {
     const raffle = this.raffles.find(r => r.messageId === messageId);
     return raffle ? raffle.id : null;
+  }
+
+  // Alias (optional)
+  getByMessageId(messageId) {
+    return this.raffles.find(r => r.messageId === messageId);
   }
 
   // Set the message ID after sending the raffle embed
@@ -46,7 +56,9 @@ class RaffleStore {
 
   // Get active raffle for a guild
   getActive(guildId) {
-    return this.raffles.find(r => r.guildId === guildId && Date.now() < r.endsAt);
+    return this.raffles.find(
+      r => r.guildId === guildId && Date.now() < r.endsAt
+    );
   }
 
   // End raffle
