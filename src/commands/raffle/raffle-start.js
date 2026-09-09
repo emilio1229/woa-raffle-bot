@@ -1,4 +1,11 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, RoleSelectMenuBuilder } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  RoleSelectMenuBuilder
+} from "discord.js";
+
+import { raffleStore } from "../../raffleStore.js";
 
 // Replace these with your actual role IDs
 const MEMBERS_ROLE_ID = 'MEMBERS_ROLE_ID_HERE';
