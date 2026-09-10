@@ -7,100 +7,113 @@ export default {
     .setDescription("Force-end the current ritual raffle."),
 
   async execute(interaction) {
-    const raffle = raffleStore.getActive(interaction.guild.id);
+    const allRaffles = raffleStore.all().filter(r => Date.now() < r.endsAt);
 
-    if (!raffle) {
+    if (allRaffles.length === 0) {
       return interaction.reply({
-        content: "❌ There is no active ritual to end.",
+        content: "❌ There are no active rituals to end.",
         ephemeral: true
       });
     }
 
-    // Mark ended
-    raffleStore.markEnded(raffle.id);
-
-    // Pick winner
-    let winnerId = null;
-    if (raffle.entries.length > 0) {
-      const randomIndex = Math.floor(Math.random() * raffle.entries.length);
-      winnerId = raffle.entries[randomIndex];
+    if (allRaffles.length === 1) {
+      await executeRaffleEnd(interaction, allRaffles[0]);
+      return;
     }
 
-    // Arcane glow
-    const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
+    // Multiple raffles - show dropdown
+    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 
-    const embed = new EmbedBuilder()
-      .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
-      .setDescription(
-        winnerId
-          ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${raffle.prize}`
-          : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
-      )
-      .addFields(
-        { name: "Prize", value: raffle.prize || "Unknown", inline: true },
-        { name: "Invocation", value: raffle.wizardPhrase || "The sigils await...", inline: false },
-        { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
-      )
-      .setColor(0x4B0082);
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId("select_end_raffle")
+      .setPlaceholder("Select a ritual to end");
 
-    // Update the raffle message (remove buttons)
-    try {
-      const channel = await interaction.client.channels.fetch(raffle.channelId);
-      const msg = await channel.messages.fetch(raffle.messageId).catch(() => null);
+    allRaffles.forEach(r => {
+      selectMenu.addOptions({
+        label: r.name || `Raffle ${r.id}`,
+        value: r.id,
+        description: `Prize: ${r.prize}`
+      });
+    });
 
-      if (msg) {
-        await msg.edit({
-          embeds: [embed],
-          components: []
-        });
-      }
-
-      // Grand Winner Announcement (fancier)
-      try {
-        if (winnerId) {
-          const winnerTag = `<@${winnerId}>`;
-          const roleTag = raffle.tagRole ? ` <@&${raffle.tagRole}>` : "";
-
-          const grandEmbed = new EmbedBuilder()
-            .setColor(0xFF4500)
-            .setTitle(`✨ A Champion Has Been Chosen ✨`)
-            .setDescription(
-              `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}\n\nThe obelisk cracks open as destiny crowns its new bearer.`
-            )
-            .setImage("attachment://woa_winner_bg.png")
-            .setFooter({ text: "Wizards of Ark • Ascension Complete" })
-            .setTimestamp();
-
-          const attachment = new AttachmentBuilder("./assets/woa_winner_bg.png", { name: "woa_winner_bg.png" });
-
-          await channel.send({
-            embeds: [grandEmbed],
-            files: [attachment],
-            allowedMentions: { roles: raffle.tagRole ? [raffle.tagRole] : [] }
-          });
-        } else {
-          // No winner — send a consolation embed
-          const noWinnerEmbed = new EmbedBuilder()
-            .setColor(0x2F4F4F)
-            .setTitle(`Ritual Concluded — No Champion`)
-            .setDescription(`The ritual faded into the void; no winner could be chosen.`)
-            .setFooter({ text: "Wizards of Ark" })
-            .setTimestamp();
-
-          await channel.send({
-            embeds: [noWinnerEmbed]
-          });
-        }
-      } catch (sendErr) {
-        console.error("Announcement send failed:", sendErr);
-      }
-    } catch (err) {
-      console.error("Manual end update failed:", err);
-    }
+    const row = new ActionRowBuilder().addComponents(selectMenu);
 
     return interaction.reply({
-      content: "🔮 The ritual has been ended.",
+      content: "Choose a ritual to end:",
+      components: [row],
       ephemeral: true
     });
   }
 };
+
+async function executeRaffleEnd(interaction, raffle) {
+  raffleStore.markEnded(raffle.id);
+
+  let winnerId = null;
+  if (raffle.entries.length > 0) {
+    const randomIndex = Math.floor(Math.random() * raffle.entries.length);
+    winnerId = raffle.entries[randomIndex];
+  }
+
+  const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
+
+  const embed = new EmbedBuilder()
+    .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
+    .setDescription(
+      winnerId
+        ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${raffle.prize}`
+        : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
+    )
+    .addFields(
+      { name: "Prize", value: raffle.prize || "Unknown", inline: true },
+      { name: "Invocation", value: raffle.invocationText || "The sigils await...", inline: false },
+      { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
+    )
+    .setColor(0x4B0082);
+
+  try {
+    const channel = await interaction.client.channels.fetch(raffle.channelId);
+    const msg = await channel.messages.fetch(raffle.messageId).catch(() => null);
+
+    if (msg) {
+      await msg.edit({
+        embeds: [embed],
+        components: []
+      });
+    }
+
+    if (winnerId) {
+      const winnerTag = `<@${winnerId}>`;
+      const roleTag = raffle.tagRole ? ` <@&${raffle.tagRole}>` : "";
+
+      const grandEmbed = new EmbedBuilder()
+        .setColor(0xFF4500)
+        .setTitle("✨ A Champion Has Been Chosen ✨")
+        .setDescription(
+          `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}`
+        )
+        .addFields(
+          { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
+          { name: "📜 Souls Bound", value: `${raffle.entries.length}`, inline: true }
+        )
+        .setImage("attachment://woa_winner_bg.png")
+        .setFooter({ text: "Wizards of Ark • Ascension Complete" })
+        .setTimestamp();
+
+      const attachment = new AttachmentBuilder("./assets/woa_winner_bg.png", { name: "woa_winner_bg.png" });
+
+      await channel.send({
+        embeds: [grandEmbed],
+        files: [attachment],
+        allowedMentions: { roles: raffle.tagRole ? [raffle.tagRole] : [] }
+      });
+    }
+  } catch (err) {
+    console.error("Manual end failed:", err);
+  }
+
+  return interaction.reply({
+    content: "🔮 The ritual has been ended.",
+    ephemeral: true
+  });
+}
