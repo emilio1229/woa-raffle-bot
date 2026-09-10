@@ -59,13 +59,13 @@ async function executeRaffleEnd(interaction, raffle) {
     .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
     .setDescription(
       winnerId
-        ? `The arcane forces have chosen <@${winnerId}>\n\n**Prize:** ${raffle.prize}`
-        : `💀 The ritual found **no sigils** to bind.\n\nNo winner was chosen.`
+        ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${raffle.prize}`
+        : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
     )
     .addFields(
       { name: "Prize", value: raffle.prize || "Unknown", inline: true },
       { name: "Invocation", value: raffle.invocationText || "The sigils await...", inline: false },
-      { name: "💠 Bound Sigils", value: `${raffle.entries.length}`, inline: true }
+      { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
     )
     .setColor(0x4B0082);
 
@@ -75,7 +75,6 @@ async function executeRaffleEnd(interaction, raffle) {
 
     if (msg) {
       await msg.edit({
-        embeds: [embed],
         components: []
       });
     }
@@ -100,7 +99,10 @@ async function executeRaffleEnd(interaction, raffle) {
       await channel.send({
         embeds: [grandEmbed],
         files: [attachment],
-        allowedMentions: { roles: raffle.tagRole ? [raffle.tagRole] : [] }
+        allowedMentions: {
+          users: [winnerId],
+          roles: raffle.tagRole ? [raffle.tagRole] : []
+        }
       });
     }
   } catch (err) {
