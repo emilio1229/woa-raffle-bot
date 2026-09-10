@@ -78,7 +78,14 @@ export function startAutoEndLoop(client) {
                 .setTimestamp();
 
               const attachment = new AttachmentBuilder(ASSET_PATH, { name: "woa_winner_bg.png" });
-              await destChannel.send({ embeds: [grandEmbed], files: [attachment] });
+              await destChannel.send({
+                embeds: [grandEmbed],
+                files: [attachment],
+                allowedMentions: {
+                  users: [winnerId],
+                  roles: raffle.tagRole ? [raffle.tagRole] : []
+                }
+              });
               console.log(`[autoEndManager] sent grand announcement for raffle ${raffle.id}`);
             } else {
               const noWinnerEmbed = new EmbedBuilder()
