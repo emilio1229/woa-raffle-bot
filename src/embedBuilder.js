@@ -52,10 +52,12 @@ export function buildRaffleEndedEmbed(raffle, entryCount, winnerId = null) {
     description = "💀 No souls were bound — the ritual yields no winner.";
   }
 
+  const roleTag = raffle.tagRole ? `\n\n📢 ${<@&${raffle.tagRole}>` : "";
+
   const embed = new EmbedBuilder()
     .setColor(0xFF6B00)
     .setTitle("✨ Ritual Complete ✨")
-    .setDescription(description)
+    .setDescription(description + roleTag)
     .addFields(
       {
         name: "🎁 Offering",
