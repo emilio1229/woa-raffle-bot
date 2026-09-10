@@ -167,7 +167,7 @@ export default {
             `${raffle.entries.length}`
           ].join("\n")
         )
-        .setImage("file:///C:/Users/Andres%20German/Pictures/ritual.png"); // cosmic nebula background
+        .setImage("attachment://woa_ritual_bg.png");
 
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -183,7 +183,8 @@ export default {
 
       const raffleMsg = await interaction.channel.send({
         embeds: [raffleEmbed],
-        components: [buttonRow]
+        components: [buttonRow],
+        files: ["./assets/woa_ritual_bg.png"]
       });
 
       raffleStore.setMessageId(raffle.id, raffleMsg.id);
