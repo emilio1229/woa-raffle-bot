@@ -1,6 +1,6 @@
 // src/interactionCreate.js
 import { raffleStore } from "./raffleStore.js";
-import { buildRaffleEmbed } from "./embedBuilder.js";
+import { buildRaffleEndedEmbed } from "./embedBuilder.js";
 
 // Ritual button handlers
 import { handleBindSoul } from "./buttons/bindSoul.js";
@@ -103,7 +103,7 @@ export async function handleInteraction(interaction) {
             resultText = `🔮 The ritual has chosen: <@${winner}>`;
           }
 
-          const endingEmbed = buildRaffleEmbed(updated, updated.entries.length, winner);
+          const endingEmbed = buildRaffleEndedEmbed(updated, updated.entries.length, winner);
 
           try {
             const channel = await interaction.client.channels.fetch(updated.channelId);
