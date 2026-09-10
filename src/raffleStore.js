@@ -24,6 +24,15 @@ class RaffleStore {
     }
   }
 
+  // Mark raffle as ended (without removing it)
+  markEnded(raffleId) {
+    const raffle = this.getById(raffleId);
+    if (raffle) {
+      raffle.ended = true;
+      this.save(raffle);
+    }
+  }
+
   // Return ALL raffles (needed for autoEndManager)
   all() {
     return this.raffles;
@@ -61,7 +70,7 @@ class RaffleStore {
     );
   }
 
-  // End raffle
+  // End raffle (remove from store)
   end(raffleId) {
     this.raffles = this.raffles.filter(r => r.id !== raffleId);
   }
