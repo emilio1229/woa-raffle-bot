@@ -7,25 +7,51 @@ export default {
     .setDescription("Show the current ritual raffle status."),
 
   async execute(interaction) {
-    const raffle = raffleStore.getActive(interaction.guild.id);
+    const allRaffles = raffleStore.all().filter(r => Date.now() < r.endsAt);
 
-    if (!raffle) {
+    if (allRaffles.length === 0) {
       return interaction.reply({
-        content: "❌ There is no active ritual at the moment.",
+        content: "❌ There are no active rituals at the moment.",
         ephemeral: true
       });
     }
 
-    const embed = new EmbedBuilder()
-      .setTitle("🔮 Active Ritual Status")
-      .addFields(
-        { name: "Prize", value: raffle.prize || "Unknown", inline: true },
-        { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
-        { name: "Invocation", value: raffle.wizardPhrase || "The sigils await...", inline: false },
-        { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
-      )
-      .setColor(0x4B0082);
+    if (allRaffles.length === 1) {
+      const raffle = allRaffles[0];
+      const embed = new EmbedBuilder()
+        .setTitle("🔮 Active Ritual Status")
+        .addFields(
+          { name: "Prize", value: raffle.prize || "Unknown", inline: true },
+          { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
+          { name: "Invocation", value: raffle.invocationText || "The sigils await...", inline: false },
+          { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
+        )
+        .setColor(0x4B0082);
 
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    // Multiple raffles - show dropdown
+    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId("select_status_raffle")
+      .setPlaceholder("Select a ritual to view status");
+
+    allRaffles.forEach(r => {
+      selectMenu.addOptions({
+        label: r.name || `Raffle ${r.id}`,
+        value: r.id,
+        description: `Prize: ${r.prize}`
+      });
+    });
+
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+
+    return interaction.reply({
+      content: "Choose a ritual to view:",
+      components: [row],
+      ephemeral: true
+    });
   }
 };
