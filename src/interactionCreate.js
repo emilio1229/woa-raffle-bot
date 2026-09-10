@@ -1,6 +1,7 @@
 // src/interactionCreate.js
 import { raffleStore } from "./raffleStore.js";
 import { buildRaffleEndedEmbed } from "./embedBuilder.js";
+import { EmbedBuilder, AttachmentBuilder } from "discord.js";
 
 // Ritual button handlers
 import { handleBindSoul } from "./buttons/bindSoul.js";
@@ -39,7 +40,7 @@ export async function handleInteraction(interaction) {
       }
 
       const [action, raffleId] = interaction.customId.split("_");
-      const raffle = raffleStore.findById(raffleId);
+      const raffle = raffleStore.getById(raffleId);
 
       if (!raffle) {
         try {
@@ -51,12 +52,12 @@ export async function handleInteraction(interaction) {
         return;
       }
 
-      if (action === "enter") {
+      if (action === "bindSoul") {
         await handleBindSoul(interaction, raffleId);
         return;
       }
 
-      if (action === "leave") {
+      if (action === "unbindSoul") {
         await handleUnbindSoul(interaction, raffleId);
         return;
       }
@@ -66,18 +67,60 @@ export async function handleInteraction(interaction) {
 
     // ---------------------------------------------------------
     // STRING SELECT MENUS
-    // (Used for manual end raffle)
     // ---------------------------------------------------------
     if (interaction.isStringSelectMenu()) {
       const customId = interaction.customId;
 
+      // Status raffle selection
+      if (customId === "select_status_raffle") {
+        try {
+          await interaction.deferUpdate();
+        } catch {}
+
+        const selectedId = interaction.values[0];
+        const raffle = raffleStore.getById(selectedId);
+
+        if (!raffle) {
+          try {
+            await interaction.editReply({
+              content: "Selected ritual not found.",
+              components: []
+            });
+          } catch {}
+          return;
+        }
+
+        const { EmbedBuilder } = require("discord.js");
+        const embed = new EmbedBuilder()
+          .setTitle("🔮 Active Ritual Status")
+          .addFields(
+            { name: "Prize", value: raffle.prize || "Unknown", inline: true },
+            { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
+            { name: "Invocation", value: raffle.invocationText || "The sigils await...", inline: false },
+            { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
+          )
+          .setColor(0x4B0082);
+
+        try {
+          await interaction.editReply({
+            content: "",
+            embeds: [embed],
+            components: []
+          });
+        } catch {}
+
+        return;
+      }
+
+      // End raffle selection
       if (customId === "select_end_raffle") {
-        try { await interaction.deferUpdate(); } catch {}
+        try {
+          await interaction.deferUpdate();
+        } catch {}
 
-        const selected = interaction.values[0];
-        if (!selected) return;
+        const selectedId = interaction.values[0];
+        const raffle = raffleStore.getById(selectedId);
 
-        const raffle = raffleStore.findById(selected);
         if (!raffle) {
           try {
             await interaction.editReply({
@@ -90,34 +133,75 @@ export async function handleInteraction(interaction) {
 
         try {
           raffleStore.markEnded(raffle.id);
-          const updated = raffleStore.findById(raffle.id);
+          const updated = raffleStore.getById(raffle.id);
           const entries = updated.entries ?? [];
 
           let winner = null;
-          let resultText;
-
-          if (entries.length === 0) {
-            resultText = "💀 No souls were bound — the ritual yields no winner.";
-          } else {
+          if (entries.length > 0) {
             winner = entries[Math.floor(Math.random() * entries.length)];
-            resultText = `🔮 The ritual has chosen: <@${winner}>`;
           }
 
-          const endingEmbed = buildRaffleEndedEmbed(updated, updated.entries.length, winner);
+          const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
+
+          const embed = new EmbedBuilder()
+            .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
+            .setDescription(
+              winner
+                ? `The arcane forces have chosen <@${winner}>.\n\n**Prize:** ${updated.prize}`
+                : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
+            )
+            .addFields(
+              { name: "Prize", value: updated.prize || "Unknown", inline: true },
+              { name: "Invocation", value: updated.invocationText || "The sigils await...", inline: false },
+              { name: "Bound Souls", value: `${entries.length}`, inline: true }
+            )
+            .setColor(0x4B0082);
 
           try {
             const channel = await interaction.client.channels.fetch(updated.channelId);
             const msg = await channel.messages.fetch(updated.messageId);
-            await msg.edit({ embeds: [endingEmbed], components: [] });
+            await msg.edit({ embeds: [embed], components: [] });
           } catch {}
+
+          // Send grand winner announcement
+          if (winner) {
+            try {
+              const channel = await interaction.client.channels.fetch(updated.channelId);
+              const winnerTag = `<@${winner}>`;
+              const roleTag = updated.tagRole ? ` <@&${updated.tagRole}>` : "";
+
+              const grandEmbed = new EmbedBuilder()
+                .setColor(0xFF4500)
+                .setTitle("✨ A Champion Has Been Chosen ✨")
+                .setDescription(
+                  `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}`
+                )
+                .addFields(
+                  { name: "🎁 Prize", value: `**${updated.prize}**`, inline: false },
+                  { name: "📜 Souls Bound", value: `${entries.length}`, inline: true }
+                )
+                .setImage("attachment://woa_winner_bg.png")
+                .setFooter({ text: "Wizards of Ark • Ascension Complete" })
+                .setTimestamp();
+
+              const attachment = new AttachmentBuilder("./assets/woa_winner_bg.png", { name: "woa_winner_bg.png" });
+
+              await channel.send({
+                embeds: [grandEmbed],
+                files: [attachment],
+                allowedMentions: { roles: updated.tagRole ? [updated.tagRole] : [] }
+              });
+            } catch (err) {
+              console.error("Grand announcement failed:", err);
+            }
+          }
 
           try {
             await interaction.editReply({
-              content: resultText,
+              content: "🔮 The ritual has been ended.",
               components: []
             });
           } catch {}
-
         } catch (err) {
           console.error("select_end_raffle error:", err);
           try {
