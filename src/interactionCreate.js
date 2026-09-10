@@ -159,7 +159,7 @@ export async function handleInteraction(interaction) {
           try {
             const channel = await interaction.client.channels.fetch(updated.channelId);
             const msg = await channel.messages.fetch(updated.messageId);
-            await msg.edit({ embeds: [embed], components: [] });
+            await msg.edit({ components: [] });
           } catch {}
 
           // Send grand winner announcement
@@ -175,7 +175,7 @@ export async function handleInteraction(interaction) {
                   { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
                   { name: "📢 Ritual Role", value: updated.tagRole ? `<@&${updated.tagRole}>` : "None", inline: false },
                   { name: "🎁 Prize", value: `**${updated.prize}**`, inline: false },
-                  { name: "📜 Souls Bound", value: `${entries.length}`, inline: true }
+                  { name: "💠 Sigils Bound", value: `${entries.length}`, inline: true }
                 )
                 .setImage("attachment://woa_winner_bg.png")
                 .setFooter({ text: "Wizards of Ark • Ascension Complete" })
@@ -186,7 +186,10 @@ export async function handleInteraction(interaction) {
               await channel.send({
                 embeds: [grandEmbed],
                 files: [attachment],
-                allowedMentions: { roles: updated.tagRole ? [updated.tagRole] : [] }
+                allowedMentions: {
+                  users: [winnerId],
+                  roles: updated.tagRole ? [updated.tagRole] : []
+                }
               });
             } catch (err) {
               console.error("Grand announcement failed:", err);
