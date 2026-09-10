@@ -1,84 +1,82 @@
-// src/buttons/bindSoul.js
-import { raffleStore } from "../raffleStore.js";
 import { EmbedBuilder } from "discord.js";
+import { buildActiveRaffleEmbed } from "../embedBuilder.js";
+import { withRaffleEntryLock } from "../raffleEntryLock.js";
+import { raffleStore } from "../raffleStore.js";
+
+function countEntriesForUser(entries, userId) {
+  return entries.filter(id => id === userId).length;
+}
 
 export async function handleBindSoul(interaction, raffleId) {
-  const raffle = raffleStore.getById(raffleId);
-  if (!raffle) {
-    return interaction.reply({
-      content: "❌ This ritual has already ended.",
-      flags: 64
-    });
-  }
+  return withRaffleEntryLock(raffleId, async () => {
+    const raffle = raffleStore.getById(raffleId);
+    if (!raffle) {
+      return interaction.reply({
+        content: "❌ This ritual has already ended.",
+        flags: 64
+      });
+    }
 
-  const userId = interaction.user.id;
+    const userId = interaction.user.id;
+    raffle.boundUsers ??= [];
+    raffle.entries ??= [];
 
-  if (raffle.entries.includes(userId)) {
-    return interaction.reply({
-      content: "✨ Your essence is already offered to this ritual.",
-      flags: 64
-    });
-  }
+    if (raffle.boundUsers.includes(userId)) {
+      return interaction.reply({
+        content: "✨ Your essence is already offered to this ritual.",
+        flags: 64
+      });
+    }
 
-  raffle.entries.push(userId);
-  raffleStore.save(raffle);
+    const originalEntries = [...raffle.entries];
+    const originalBoundUsers = [...raffle.boundUsers];
 
-  const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
-  const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
+    raffle.boundUsers.push(userId);
+    raffle.entries.push(userId);
 
-  const embed = new EmbedBuilder()
-    .setTitle(`${glowSymbol} Sigil Offered`)
-    .setDescription(
-      [
-        `Your essence merges with the ritual circle.`,
-        `The sigils flare as your offering is accepted.`,
-        ``,
-        `💠 **Sigil Offered**`,
-        `💠 **Total Sigils:** ${raffle.entries.length}`,
-        ``,
-        `⟐ The astral ledger marks your contribution.`
-      ].join("\n")
-    )
-    .setColor(0x5A00A0)
-    .setFooter({ text: "The ritual deepens…" });
+    try {
+      const channel = await interaction.client.channels.fetch(raffle.channelId);
+      const msg = await channel.messages.fetch(raffle.messageId);
 
-  try {
-    const channel = await interaction.client.channels.fetch(raffle.channelId);
-    const msg = await channel.messages.fetch(raffle.messageId);
+      await msg.edit({
+        embeds: [buildActiveRaffleEmbed(raffle)],
+        components: msg.components,
+        files: ["./assets/woa_ritual_bg.png"]
+      });
+    } catch (err) {
+      raffle.entries = originalEntries;
+      raffle.boundUsers = originalBoundUsers;
 
-    const updatedEmbed = new EmbedBuilder()
-      .setTitle(`🔮 ${raffle.name}`)
-      .setColor(0x4B0082)
+      return interaction.reply({
+        content: "❌ The ritual could not be updated. Your sigil was not added.",
+        flags: 64
+      });
+    }
+
+    raffleStore.save(raffle);
+
+    const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
+    const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${glowSymbol} Sigil Offered`)
       .setDescription(
         [
-          `A ritual has been cast. The circle hums with quiet power.`,
+          `Your essence merges with the ritual circle.`,
+          `The sigils flare as your offering is accepted.`,
           ``,
-          `**✨ Invocation**`,
-          `⟐ ${raffle.invocationText}`,
+          `💠 **Your Total Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
+          `💠 **Total Sigils Bound:** ${raffle.entries.length}`,
           ``,
-          `**🎁 Prize**`,
-          `${raffle.prize}`,
-          ``,
-          `**⏳ Ends At**`,
-          `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
-          ``,
-          `**💠 Bound Sigils**`,
-          `${raffle.entries.length}`
+          `⟐ The astral ledger marks your contribution.`
         ].join("\n")
       )
-      .setImage("attachment://woa_ritual_bg.png");
+      .setColor(0x5A00A0)
+      .setFooter({ text: "The ritual deepens…" });
 
-    await msg.edit({
-      embeds: [updatedEmbed],
-      components: msg.components,
-      files: ["./assets/woa_ritual_bg.png"]
+    return interaction.reply({
+      embeds: [embed],
+      flags: 64
     });
-  } catch (err) {
-    console.error("bindSoul embed update failed:", err);
-  }
-
-  return interaction.reply({
-    embeds: [embed],
-    flags: 64
   });
 }

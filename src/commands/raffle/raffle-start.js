@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
+import { buildActiveRaffleEmbed } from "../../embedBuilder.js";
 import { parseTime } from "../../utils/timeParser.js";
 
 export default {
@@ -117,7 +118,8 @@ export default {
         tagRole,
         invocationText,
         ritualType: "soul-binding",
-        entries: []
+        entries: [],
+        boundUsers: []
       });
 
       // TOP EMBED — ANNOUNCEMENT (ritual name + role)
@@ -138,27 +140,7 @@ export default {
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
       // MAIN RAFFLE EMBED — the active ritual
-      const raffleEmbed = new EmbedBuilder()
-        .setTitle(`🔮 ${name}`)
-        .setColor(0x4B0082)
-        .setDescription(
-          [
-            `A ritual has been cast. The circle hums with quiet power.`,
-            ``,
-            `**✨ Invocation**`,
-            `⟐ ${invocationText}`,
-            ``,
-            `**🎁 Prize**`,
-            `${prize}`,
-            ``,
-            `**⏳ Ends At**`,
-            `<t:${Math.floor(endsAt / 1000)}:F>`,
-            ``,
-            `**💠 Bound Sigils**`,
-            `${raffle.entries.length}`
-          ].join("\n")
-        )
-        .setImage("attachment://woa_ritual_bg.png");
+      const raffleEmbed = buildActiveRaffleEmbed(raffle);
 
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()

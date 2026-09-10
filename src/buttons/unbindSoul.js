@@ -1,84 +1,89 @@
-// src/buttons/unbindSoul.js
-import { raffleStore } from "../raffleStore.js";
 import { EmbedBuilder } from "discord.js";
+import { buildActiveRaffleEmbed } from "../embedBuilder.js";
+import { withRaffleEntryLock } from "../raffleEntryLock.js";
+import { raffleStore } from "../raffleStore.js";
+
+function removeSingleEntry(entries, userId) {
+  const index = entries.indexOf(userId);
+  if (index !== -1) {
+    entries.splice(index, 1);
+  }
+}
+
+function countEntriesForUser(entries, userId) {
+  return entries.filter(id => id === userId).length;
+}
 
 export async function handleUnbindSoul(interaction, raffleId) {
-  const raffle = raffleStore.getById(raffleId);
-  if (!raffle) {
-    return interaction.reply({
-      content: "❌ This ritual has already ended.",
-      flags: 64
-    });
-  }
+  return withRaffleEntryLock(raffleId, async () => {
+    const raffle = raffleStore.getById(raffleId);
+    if (!raffle) {
+      return interaction.reply({
+        content: "❌ This ritual has already ended.",
+        flags: 64
+      });
+    }
 
-  const userId = interaction.user.id;
+    const userId = interaction.user.id;
+    raffle.boundUsers ??= [];
+    raffle.entries ??= [];
 
-  if (!raffle.entries.includes(userId)) {
-    return interaction.reply({
-      content: "✨ You have no sigils to reclaim from this ritual.",
-      flags: 64
-    });
-  }
+    if (!raffle.boundUsers.includes(userId)) {
+      return interaction.reply({
+        content: "✨ You have no manually offered sigil to reclaim from this ritual.",
+        flags: 64
+      });
+    }
 
-  raffle.entries = raffle.entries.filter(id => id !== userId);
-  raffleStore.save(raffle);
+    const originalEntries = [...raffle.entries];
+    const originalBoundUsers = [...raffle.boundUsers];
 
-  const glow = ["🜂🌑", "🜂🕯️", "🜂🌫️", "🜂⚫"];
-  const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
+    raffle.boundUsers = raffle.boundUsers.filter(id => id !== userId);
+    removeSingleEntry(raffle.entries, userId);
 
-  const embed = new EmbedBuilder()
-    .setTitle(`${glowSymbol} Sigil Reclaimed`)
-    .setDescription(
-      [
-        `Your essence withdraws from the ritual circle.`,
-        `The sigils dim as your offering fades.`,
-        ``,
-        `🜂 **Sigil Reclaimed**`,
-        `💠 **Remaining Sigils:** ${raffle.entries.length}`,
-        ``,
-        `⟐ The astral ledger adjusts to your departure.`
-      ].join("\n")
-    )
-    .setColor(0x2E003E)
-    .setFooter({ text: "The ritual shifts…" });
+    try {
+      const channel = await interaction.client.channels.fetch(raffle.channelId);
+      const msg = await channel.messages.fetch(raffle.messageId);
 
-  try {
-    const channel = await interaction.client.channels.fetch(raffle.channelId);
-    const msg = await channel.messages.fetch(raffle.messageId);
+      await msg.edit({
+        embeds: [buildActiveRaffleEmbed(raffle)],
+        components: msg.components,
+        files: ["./assets/woa_ritual_bg.png"]
+      });
+    } catch (err) {
+      raffle.entries = originalEntries;
+      raffle.boundUsers = originalBoundUsers;
 
-    const updatedEmbed = new EmbedBuilder()
-      .setTitle(`🔮 ${raffle.name}`)
-      .setColor(0x4B0082)
+      return interaction.reply({
+        content: "❌ The ritual could not be updated. Your sigil was not reclaimed.",
+        flags: 64
+      });
+    }
+
+    raffleStore.save(raffle);
+
+    const glow = ["🜂🌑", "🜂🕯️", "🜂🌫️", "🜂⚫"];
+    const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
+
+    const embed = new EmbedBuilder()
+      .setTitle(`${glowSymbol} Sigil Reclaimed`)
       .setDescription(
         [
-          `A ritual has been cast. The circle hums with quiet power.`,
+          `Your essence withdraws from the ritual circle.`,
+          `The sigils dim as your offering fades.`,
           ``,
-          `**✨ Invocation**`,
-          `⟐ ${raffle.invocationText}`,
+          `🜂 **Your Remaining Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
+          `💠 **Total Sigils Bound:** ${raffle.entries.length}`,
           ``,
-          `**🎁 Prize**`,
-          `${raffle.prize}`,
-          ``,
-          `**⏳ Ends At**`,
-          `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
-          ``,
-          `**💠 Bound Sigils**`,
-          `${raffle.entries.length}`
+          `⟐ The astral ledger adjusts to your departure.`
         ].join("\n")
       )
-      .setImage("attachment://woa_ritual_bg.png");
+      .setColor(0x2E003E)
+      .setFooter({ text: "The ritual shifts…" });
 
-    await msg.edit({
-      embeds: [updatedEmbed],
-      components: msg.components,
-      files: ["./assets/woa_ritual_bg.png"]
+    return interaction.reply({
+      embeds: [embed],
+      flags: 64
     });
-  } catch (err) {
-    console.error("unbindSoul embed update failed:", err);
-  }
-
-  return interaction.reply({
-    embeds: [embed],
-    flags: 64
   });
 }
