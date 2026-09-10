@@ -7,10 +7,22 @@ import { REST, Routes } from "discord.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function getCommandFiles(commandsRoot) {
-  return fs.readdirSync(commandsRoot, { recursive: true })
-    .filter(file => file.endsWith(".js"))
-    .map(file => path.join(commandsRoot, file));
+// TRUE RECURSIVE COMMAND SCAN
+function getCommandFiles(dir) {
+  let results = [];
+
+  for (const file of fs.readdirSync(dir)) {
+    const fullPath = path.join(dir, file);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      results = results.concat(getCommandFiles(fullPath));
+    } else if (file.endsWith(".js")) {
+      results.push(fullPath);
+    }
+  }
+
+  return results;
 }
 
 const commands = [];
