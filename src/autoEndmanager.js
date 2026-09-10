@@ -2,7 +2,6 @@
 import { fileURLToPath } from "url";
 import path from "path";
 import { raffleStore } from "./raffleStore.js";
-import { buildRaffleEndedEmbed } from "./embedBuilder.js";
 import { EmbedBuilder, AttachmentBuilder } from "discord.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,10 +26,7 @@ export function startAutoEndLoop(client) {
             console.log(`[autoEndManager] No entries for raffle ${raffle.id}`);
           }
 
-          // Build completed embed (separate from active embed)
-          const endingEmbed = buildRaffleEndedEmbed(raffle, entries.length, winnerId);
-
-          // Try to update the original raffle message (remove buttons)
+          // Remove buttons from original raffle message (keep embed as-is)
           try {
             if (raffle.channelId && raffle.messageId) {
               const channel = await client.channels.fetch(raffle.channelId).catch(e => {
@@ -45,8 +41,8 @@ export function startAutoEndLoop(client) {
                 });
 
                 if (msg) {
-                  await msg.edit({ embeds: [endingEmbed], components: [] }).catch(e => {
-                    console.error("[autoEndManager] failed to edit original raffle message:", e);
+                  await msg.edit({ components: [] }).catch(e => {
+                    console.error("[autoEndManager] failed to remove buttons:", e);
                   });
                 }
               }
@@ -54,10 +50,10 @@ export function startAutoEndLoop(client) {
               console.warn(`[autoEndManager] raffle ${raffle.id} missing channelId/messageId`);
             }
           } catch (err) {
-            console.error("autoEndManager announcement (edit) failed:", err);
+            console.error("autoEndManager button removal failed:", err);
           }
 
-          // Send grand announcement
+          // Send grand announcement (SEPARATE EMBED)
           try {
             const destChannel = await client.channels.fetch(raffle.channelId).catch(e => {
               console.error(`[autoEndManager] failed to fetch channel for announcement ${raffle.channelId}:`, e);
