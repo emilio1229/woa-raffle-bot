@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, StringSelectMenuBuilder } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
 
 export default {
@@ -22,8 +22,6 @@ export default {
     }
 
     // Multiple raffles - show dropdown
-    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
-
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId("select_end_raffle")
       .setPlaceholder("Select a ritual to end");
