@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
 
 export default {
@@ -53,6 +53,47 @@ export default {
           embeds: [embed],
           components: []
         });
+      }
+
+      // Grand Winner Announcement (fancier)
+      try {
+        if (winnerId) {
+          const winners = [winnerId];
+          const winnerTag = winners.map(id => `<@${id}>`).join(', ');
+          const roleTag = raffle.roleId ? `<@&${raffle.roleId}>` : null;
+
+          const grandEmbed = new EmbedBuilder()
+            .setColor(0xFF4500)
+            .setTitle(`✨ A Champion Has Been Chosen ✨`)
+            .setDescription(
+              `The sigil storm erupts in violent cosmic fury.\n\n` +
+              `🔮 **Winner:** ${winnerTag}\n` +
+              (roleTag ? `🜂 **Ritual Role:** ${roleTag}\n` : '') +
+              `\nThe obelisk cracks open as destiny crowns its new bearer.`
+            )
+            .setImage("attachment://woa_winner_bg.png")
+            .setFooter({ text: "Wizards of Ark • Ascension Complete" })
+            .setTimestamp();
+
+          const attachment = new AttachmentBuilder("./assets/woa_winner_bg.png", { name: "woa_winner_bg.png" });
+
+          await channel.send({
+            embeds: [grandEmbed],
+            files: [attachment]
+          });
+        } else {
+          // No winner — send a consolation embed
+          const noWinnerEmbed = new EmbedBuilder()
+            .setColor(0x2F4F4F)
+            .setTitle(`Ritual Concluded — No Champion`)
+            .setDescription(`The ritual faded into the void; no winner could be chosen.`)
+            .setFooter({ text: "Wizards of Ark" })
+            .setTimestamp();
+
+          await channel.send({ embeds: [noWinnerEmbed] });
+        }
+      } catch (sendErr) {
+        console.error("Announcement send failed:", sendErr);
       }
     } catch (err) {
       console.error("Manual end update failed:", err);
