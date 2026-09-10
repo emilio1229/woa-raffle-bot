@@ -6,9 +6,17 @@ import { buildShopComponents, buildShopEmbed } from "../../sigilUtils.js";
 export default {
   data: new SlashCommandBuilder()
     .setName("sigil-shop")
-    .setDescription("Redeem sigils for weighted raffle entries."),
+    .setDescription("Redeem sigils for weighted raffle entries.")
+    .setDMPermission(false),
 
   async execute(interaction) {
+    if (!interaction.inGuild() || !interaction.guild) {
+      return interaction.reply({
+        content: "❌ The sigil shop can only be used inside a server.",
+        flags: 64
+      });
+    }
+
     const activeRaffles = raffleStore
       .all()
       .filter(raffle => raffle.guildId === interaction.guild.id && Date.now() < raffle.endsAt && !raffle.ended);

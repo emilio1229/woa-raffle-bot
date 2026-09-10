@@ -8,6 +8,29 @@ import { buildRedeemSuccessEmbed } from "./sigilUtils.js";
 import { handleBindSoul } from "./buttons/bindSoul.js";
 import { handleUnbindSoul } from "./buttons/unbindSoul.js";
 
+const redemptionLocks = new Map();
+
+async function withRedemptionLock(raffleId, callback) {
+  const previous = redemptionLocks.get(raffleId) ?? Promise.resolve();
+  let release;
+  const current = new Promise(resolve => {
+    release = resolve;
+  });
+
+  redemptionLocks.set(raffleId, current);
+  await previous;
+
+  try {
+    return await callback();
+  } finally {
+    release();
+
+    if (redemptionLocks.get(raffleId) === current) {
+      redemptionLocks.delete(raffleId);
+    }
+  }
+}
+
 function getRaffleIdFromButton(interaction) {
   const [action, raffleId] = interaction.customId.split("_");
 
@@ -107,44 +130,49 @@ export async function handleInteraction(interaction) {
       }
 
       try {
-        const originalEntries = [...(raffle.entries ?? [])];
-        raffle.entries = [...originalEntries];
+        await withRedemptionLock(raffle.id, async () => {
+          const originalEntries = [...(raffle.entries ?? [])];
+          raffle.entries = [...originalEntries];
 
-        for (let index = 0; index < entryCount; index += 1) {
-          raffle.entries.push(interaction.user.id);
-        }
-        raffleStore.save(raffle);
-
-        let redemption;
-
-        try {
-          redemption = sigilStore.redeem(
-            interaction.guild.id,
-            interaction.user.id,
-            entryCount,
-            raffle.id,
-            raffle.name
-          );
-        } catch (err) {
-          raffle.entries = originalEntries;
+          for (let index = 0; index < entryCount; index += 1) {
+            raffle.entries.push(interaction.user.id);
+          }
           raffleStore.save(raffle);
-          throw err;
-        }
 
-        try {
-          const channel = await interaction.client.channels.fetch(raffle.channelId);
-          const msg = await channel.messages.fetch(raffle.messageId);
-          await msg.edit({
-            embeds: [buildActiveRaffleEmbed(raffle)],
-            components: msg.components,
-            files: ["./assets/woa_ritual_bg.png"]
+          let redemption;
+
+          try {
+            redemption = sigilStore.redeem(
+              interaction.guild.id,
+              interaction.user.id,
+              entryCount,
+              raffle.id,
+              raffle.name
+            );
+          } catch (err) {
+            raffle.entries = originalEntries;
+            raffleStore.save(raffle);
+            throw err;
+          }
+
+          try {
+            const channel = await interaction.client.channels.fetch(raffle.channelId);
+            const msg = await channel.messages.fetch(raffle.messageId);
+            await msg.edit({
+              embeds: [buildActiveRaffleEmbed(raffle)],
+              components: msg.components,
+              files: ["./assets/woa_ritual_bg.png"]
+            });
+          } catch (err) {
+            raffle.entries = originalEntries;
+            raffleStore.save(raffle);
+            sigilStore.rollbackTransaction(interaction.guild.id, interaction.user.id, redemption.transaction.id);
+            throw new Error("The ritual display could not be updated. Your sigils were not spent.");
+          }
+
+          await interaction.editReply({
+            embeds: [buildRedeemSuccessEmbed(raffle, entryCount, redemption.sigilCost, redemption.user.balance)]
           });
-        } catch (err) {
-          console.error("sigil redemption embed update failed:", err);
-        }
-
-        await interaction.editReply({
-          embeds: [buildRedeemSuccessEmbed(raffle, entryCount, redemption.sigilCost, redemption.user.balance)]
         });
       } catch (err) {
         await interaction.editReply({

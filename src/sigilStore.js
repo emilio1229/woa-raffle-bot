@@ -61,6 +61,17 @@ class SigilStore {
     return guild.users[userId];
   }
 
+  recalculateUser(user) {
+    let runningBalance = 0;
+
+    for (let index = user.transactions.length - 1; index >= 0; index -= 1) {
+      runningBalance += user.transactions[index].amount;
+      user.transactions[index].balanceAfter = runningBalance;
+    }
+
+    user.balance = runningBalance;
+  }
+
   getUser(guildId, userId) {
     return this.ensureUser(guildId, userId);
   }
@@ -81,25 +92,41 @@ class SigilStore {
       throw new Error("This user does not have enough sigils for that adjustment.");
     }
 
-    user.balance = nextBalance;
-    user.transactions.unshift({
+    const transaction = {
       id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
       timestamp: new Date().toISOString(),
       amount,
       reason,
       balanceAfter: nextBalance,
       ...metadata
-    });
+    };
+
+    user.balance = nextBalance;
+    user.transactions.unshift(transaction);
 
     this.persist();
-    return user;
+    return { user, transaction };
+  }
+
+  rollbackTransaction(guildId, userId, transactionId) {
+    const user = this.ensureUser(guildId, userId);
+    const index = user.transactions.findIndex(transaction => transaction.id === transactionId);
+
+    if (index === -1) {
+      return false;
+    }
+
+    user.transactions.splice(index, 1);
+    this.recalculateUser(user);
+    this.persist();
+    return true;
   }
 
   award(guildId, userId, amount, reason, actorId) {
     return this.addTransaction(guildId, userId, amount, reason, {
       actorId,
       type: amount > 0 ? "award" : "removal"
-    });
+    }).user;
   }
 
   redeem(guildId, userId, entryCount, raffleId, raffleName) {
@@ -108,22 +135,24 @@ class SigilStore {
     }
 
     const sigilCost = entryCount * SIGILS_PER_RAFFLE_ENTRY;
+    const result = this.addTransaction(
+      guildId,
+      userId,
+      -sigilCost,
+      `Redeemed ${entryCount} raffle ${entryCount === 1 ? "entry" : "entries"} for ${raffleName}`,
+      {
+        type: "redeem",
+        raffleId,
+        raffleName,
+        entryCount,
+        sigilCost
+      }
+    );
 
     return {
       sigilCost,
-      user: this.addTransaction(
-        guildId,
-        userId,
-        -sigilCost,
-        `Redeemed ${entryCount} raffle ${entryCount === 1 ? "entry" : "entries"} for ${raffleName}`,
-        {
-          type: "redeem",
-          raffleId,
-          raffleName,
-          entryCount,
-          sigilCost
-        }
-      )
+      user: result.user,
+      transaction: result.transaction
     };
   }
 
