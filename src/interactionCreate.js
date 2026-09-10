@@ -1,24 +1,25 @@
 // src/interactionCreate.js
+import { EmbedBuilder, AttachmentBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from "discord.js";
+import { buildActiveRaffleEmbed } from "./embedBuilder.js";
 import { raffleStore } from "./raffleStore.js";
-import { buildRaffleEndedEmbed } from "./embedBuilder.js";
-import { EmbedBuilder, AttachmentBuilder } from "discord.js";
+import { sigilStore } from "./sigilStore.js";
+import { buildRedeemSuccessEmbed } from "./sigilUtils.js";
 
-// Ritual button handlers
 import { handleBindSoul } from "./buttons/bindSoul.js";
 import { handleUnbindSoul } from "./buttons/unbindSoul.js";
 
-/**
- * Unified interaction handler for:
- * - Slash commands
- * - Buttons
- * - String select menus
- * - Role select menus
- */
+function getRaffleIdFromButton(interaction) {
+  const [action, raffleId] = interaction.customId.split("_");
+
+  if (action === "bindSoul" || action === "unbindSoul") {
+    return raffleId || raffleStore.getIdByMessage(interaction.message?.id);
+  }
+
+  return raffleId;
+}
+
 export async function handleInteraction(interaction) {
   try {
-    // ---------------------------------------------------------
-    // SLASH COMMANDS
-    // ---------------------------------------------------------
     if (interaction.isChatInputCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
       if (!command) return;
@@ -27,51 +28,124 @@ export async function handleInteraction(interaction) {
       return;
     }
 
-    // ---------------------------------------------------------
-    // BUTTONS
-    // ---------------------------------------------------------
     if (interaction.isButton()) {
-      try {
-        await interaction.deferUpdate();
-      } catch {
-        try {
-          await interaction.reply({ content: "Processing…", flags: 64 });
-        } catch {}
-      }
+      if (interaction.customId === "sigil_shop_open") {
+        const modal = new ModalBuilder()
+          .setCustomId("sigil_redeem_modal")
+          .setTitle("Redeem Sigils for Raffle Entries");
 
-      const [action, raffleId] = interaction.customId.split("_");
-      const raffle = raffleStore.getById(raffleId);
+        const raffleIdInput = new TextInputBuilder()
+          .setCustomId("sigil_raffle_id")
+          .setLabel("Raffle ID")
+          .setPlaceholder("Paste the raffle ID from /sigil-shop")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
 
-      if (!raffle) {
-        try {
-          await interaction.editReply({
-            content: "This ritual no longer exists.",
-            components: []
-          });
-        } catch {}
+        const entryCountInput = new TextInputBuilder()
+          .setCustomId("sigil_entry_count")
+          .setLabel("How many raffle entries?")
+          .setPlaceholder("1")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true);
+
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(raffleIdInput),
+          new ActionRowBuilder().addComponents(entryCountInput)
+        );
+
+        await interaction.showModal(modal);
         return;
       }
 
-      if (action === "bindSoul") {
+      const raffleId = getRaffleIdFromButton(interaction);
+      const raffle = raffleId ? raffleStore.getById(raffleId) : null;
+
+      if ((interaction.customId === "bindSoul" || interaction.customId.startsWith("bindSoul_")) && raffle) {
         await handleBindSoul(interaction, raffleId);
         return;
       }
 
-      if (action === "unbindSoul") {
+      if ((interaction.customId === "unbindSoul" || interaction.customId.startsWith("unbindSoul_")) && raffle) {
         await handleUnbindSoul(interaction, raffleId);
         return;
+      }
+
+      if (interaction.customId === "bindSoul" || interaction.customId === "unbindSoul") {
+        await interaction.reply({
+          content: "❌ This ritual is no longer active.",
+          flags: 64
+        });
       }
 
       return;
     }
 
-    // ---------------------------------------------------------
-    // STRING SELECT MENUS
-    // ---------------------------------------------------------
+    if (interaction.isModalSubmit() && interaction.customId === "sigil_redeem_modal") {
+      const raffleId = interaction.fields.getTextInputValue("sigil_raffle_id").trim();
+      const entryCountRaw = interaction.fields.getTextInputValue("sigil_entry_count").trim();
+      const entryCount = Number.parseInt(entryCountRaw, 10);
+      const raffle = raffleStore.getById(raffleId);
+
+      if (!raffle || raffle.guildId !== interaction.guild.id || raffle.ended || Date.now() >= raffle.endsAt) {
+        await interaction.reply({
+          content: "❌ That raffle is not active right now.",
+          flags: 64
+        });
+        return;
+      }
+
+      if (!Number.isInteger(entryCount) || entryCount <= 0) {
+        await interaction.reply({
+          content: "❌ Enter a valid positive number of raffle entries.",
+          flags: 64
+        });
+        return;
+      }
+
+      try {
+        const { sigilCost, user } = sigilStore.redeem(
+          interaction.guild.id,
+          interaction.user.id,
+          entryCount,
+          raffle.id,
+          raffle.name
+        );
+
+        raffle.entries ??= [];
+        for (let index = 0; index < entryCount; index += 1) {
+          raffle.entries.push(interaction.user.id);
+        }
+        raffleStore.save(raffle);
+
+        try {
+          const channel = await interaction.client.channels.fetch(raffle.channelId);
+          const msg = await channel.messages.fetch(raffle.messageId);
+          await msg.edit({
+            embeds: [buildActiveRaffleEmbed(raffle)],
+            components: msg.components,
+            files: ["./assets/woa_ritual_bg.png"]
+          });
+        } catch (err) {
+          console.error("sigil redemption embed update failed:", err);
+        }
+
+        await interaction.reply({
+          embeds: [buildRedeemSuccessEmbed(raffle, entryCount, sigilCost, user.balance)],
+          flags: 64
+        });
+      } catch (err) {
+        await interaction.reply({
+          content: `❌ ${err.message}`,
+          flags: 64
+        });
+      }
+
+      return;
+    }
+
     if (interaction.isStringSelectMenu()) {
       const customId = interaction.customId;
 
-      // Status raffle selection
       if (customId === "select_status_raffle") {
         try {
           await interaction.deferUpdate();
@@ -96,7 +170,7 @@ export async function handleInteraction(interaction) {
             { name: "Prize", value: raffle.prize || "Unknown", inline: true },
             { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
             { name: "Invocation", value: raffle.invocationText || "The sigils await...", inline: false },
-            { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
+            { name: "Bound Souls", value: `${(raffle.entries ?? []).length}`, inline: true }
           )
           .setColor(0x4B0082);
 
@@ -111,7 +185,6 @@ export async function handleInteraction(interaction) {
         return;
       }
 
-      // End raffle selection
       if (customId === "select_end_raffle") {
         try {
           await interaction.deferUpdate();
@@ -140,29 +213,12 @@ export async function handleInteraction(interaction) {
             winnerId = entries[Math.floor(Math.random() * entries.length)];
           }
 
-          const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
-
-          const embed = new EmbedBuilder()
-            .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
-            .setDescription(
-              winnerId
-                ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${updated.prize}`
-                : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
-            )
-            .addFields(
-              { name: "Prize", value: updated.prize || "Unknown", inline: true },
-              { name: "Invocation", value: updated.invocationText || "The sigils await...", inline: false },
-              { name: "Bound Souls", value: `${entries.length}`, inline: true }
-            )
-            .setColor(0x4B0082);
-
           try {
             const channel = await interaction.client.channels.fetch(updated.channelId);
             const msg = await channel.messages.fetch(updated.messageId);
             await msg.edit({ components: [] });
           } catch {}
 
-          // Send grand winner announcement
           if (winnerId) {
             try {
               const channel = await interaction.client.channels.fetch(updated.channelId);
@@ -218,20 +274,13 @@ export async function handleInteraction(interaction) {
       return;
     }
 
-    // ---------------------------------------------------------
-    // ROLE SELECT MENUS
-    // (Used by raffle-start.js)
-    // ---------------------------------------------------------
     if (interaction.isRoleSelectMenu()) {
-      // DO NOT handle logic here — raffle-start.js uses awaitMessageComponent()
-      // We ONLY acknowledge the interaction so Discord doesn't timeout.
       try {
         await interaction.deferUpdate();
       } catch {}
 
       return;
     }
-
   } catch (err) {
     console.error("interaction handler error:", err);
   }

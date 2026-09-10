@@ -1,6 +1,17 @@
-// src/buttons/unbindSoul.js
-import { raffleStore } from "../raffleStore.js";
 import { EmbedBuilder } from "discord.js";
+import { buildActiveRaffleEmbed } from "../embedBuilder.js";
+import { raffleStore } from "../raffleStore.js";
+
+function removeSingleEntry(entries, userId) {
+  const index = entries.indexOf(userId);
+  if (index !== -1) {
+    entries.splice(index, 1);
+  }
+}
+
+function countEntriesForUser(entries, userId) {
+  return entries.filter(id => id === userId).length;
+}
 
 export async function handleUnbindSoul(interaction, raffleId) {
   const raffle = raffleStore.getById(raffleId);
@@ -12,15 +23,18 @@ export async function handleUnbindSoul(interaction, raffleId) {
   }
 
   const userId = interaction.user.id;
+  raffle.boundUsers ??= [];
+  raffle.entries ??= [];
 
-  if (!raffle.entries.includes(userId)) {
+  if (!raffle.boundUsers.includes(userId)) {
     return interaction.reply({
-      content: "✨ You have no sigils to reclaim from this ritual.",
+      content: "✨ You have no manually offered sigil to reclaim from this ritual.",
       flags: 64
     });
   }
 
-  raffle.entries = raffle.entries.filter(id => id !== userId);
+  raffle.boundUsers = raffle.boundUsers.filter(id => id !== userId);
+  removeSingleEntry(raffle.entries, userId);
   raffleStore.save(raffle);
 
   const glow = ["🜂🌑", "🜂🕯️", "🜂🌫️", "🜂⚫"];
@@ -33,8 +47,8 @@ export async function handleUnbindSoul(interaction, raffleId) {
         `Your essence withdraws from the ritual circle.`,
         `The sigils dim as your offering fades.`,
         ``,
-        `🜂 **Sigil Reclaimed**`,
-        `💠 **Remaining Sigils:** ${raffle.entries.length}`,
+        `🜂 **Your Remaining Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
+        `💠 **Total Sigils Bound:** ${raffle.entries.length}`,
         ``,
         `⟐ The astral ledger adjusts to your departure.`
       ].join("\n")
@@ -46,30 +60,8 @@ export async function handleUnbindSoul(interaction, raffleId) {
     const channel = await interaction.client.channels.fetch(raffle.channelId);
     const msg = await channel.messages.fetch(raffle.messageId);
 
-    const updatedEmbed = new EmbedBuilder()
-      .setTitle(`🔮 ${raffle.name}`)
-      .setColor(0x4B0082)
-      .setDescription(
-        [
-          `A ritual has been cast. The circle hums with quiet power.`,
-          ``,
-          `**✨ Invocation**`,
-          `⟐ ${raffle.invocationText}`,
-          ``,
-          `**🎁 Prize**`,
-          `${raffle.prize}`,
-          ``,
-          `**⏳ Ends At**`,
-          `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
-          ``,
-          `**💠 Bound Sigils**`,
-          `${raffle.entries.length}`
-        ].join("\n")
-      )
-      .setImage("attachment://woa_ritual_bg.png");
-
     await msg.edit({
-      embeds: [updatedEmbed],
+      embeds: [buildActiveRaffleEmbed(raffle)],
       components: msg.components,
       files: ["./assets/woa_ritual_bg.png"]
     });

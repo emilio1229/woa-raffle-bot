@@ -1,6 +1,10 @@
-// src/buttons/bindSoul.js
-import { raffleStore } from "../raffleStore.js";
 import { EmbedBuilder } from "discord.js";
+import { buildActiveRaffleEmbed } from "../embedBuilder.js";
+import { raffleStore } from "../raffleStore.js";
+
+function countEntriesForUser(entries, userId) {
+  return entries.filter(id => id === userId).length;
+}
 
 export async function handleBindSoul(interaction, raffleId) {
   const raffle = raffleStore.getById(raffleId);
@@ -12,14 +16,17 @@ export async function handleBindSoul(interaction, raffleId) {
   }
 
   const userId = interaction.user.id;
+  raffle.boundUsers ??= [];
+  raffle.entries ??= [];
 
-  if (raffle.entries.includes(userId)) {
+  if (raffle.boundUsers.includes(userId)) {
     return interaction.reply({
       content: "✨ Your essence is already offered to this ritual.",
       flags: 64
     });
   }
 
+  raffle.boundUsers.push(userId);
   raffle.entries.push(userId);
   raffleStore.save(raffle);
 
@@ -33,8 +40,8 @@ export async function handleBindSoul(interaction, raffleId) {
         `Your essence merges with the ritual circle.`,
         `The sigils flare as your offering is accepted.`,
         ``,
-        `💠 **Sigil Offered**`,
-        `💠 **Total Sigils:** ${raffle.entries.length}`,
+        `💠 **Your Total Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
+        `💠 **Total Sigils Bound:** ${raffle.entries.length}`,
         ``,
         `⟐ The astral ledger marks your contribution.`
       ].join("\n")
@@ -46,30 +53,8 @@ export async function handleBindSoul(interaction, raffleId) {
     const channel = await interaction.client.channels.fetch(raffle.channelId);
     const msg = await channel.messages.fetch(raffle.messageId);
 
-    const updatedEmbed = new EmbedBuilder()
-      .setTitle(`🔮 ${raffle.name}`)
-      .setColor(0x4B0082)
-      .setDescription(
-        [
-          `A ritual has been cast. The circle hums with quiet power.`,
-          ``,
-          `**✨ Invocation**`,
-          `⟐ ${raffle.invocationText}`,
-          ``,
-          `**🎁 Prize**`,
-          `${raffle.prize}`,
-          ``,
-          `**⏳ Ends At**`,
-          `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
-          ``,
-          `**💠 Bound Sigils**`,
-          `${raffle.entries.length}`
-        ].join("\n")
-      )
-      .setImage("attachment://woa_ritual_bg.png");
-
     await msg.edit({
-      embeds: [updatedEmbed],
+      embeds: [buildActiveRaffleEmbed(raffle)],
       components: msg.components,
       files: ["./assets/woa_ritual_bg.png"]
     });
