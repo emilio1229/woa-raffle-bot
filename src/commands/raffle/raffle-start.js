@@ -1,13 +1,4 @@
-// src/commands/raffle/raffle-start.js
-import {
-  SlashCommandBuilder,
-  EmbedBuilder,
-  ActionRowBuilder,
-  RoleSelectMenuBuilder,
-  ButtonBuilder,
-  ButtonStyle
-} from "discord.js";
-
+import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
 import { parseTime } from "../../utils/timeParser.js";
 
@@ -129,7 +120,7 @@ export default {
         entries: []
       });
 
-      // TOP EMBED — TAGS THE ROLE
+      // TOP EMBED — ANNOUNCEMENT (ritual name + role)
       const announcementEmbed = new EmbedBuilder()
         .setTitle(`🔮 THE RITUAL BEGINS`)
         .setDescription(
@@ -146,7 +137,7 @@ export default {
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
-      // MAIN RAFFLE EMBED — cosmic nebula background
+      // MAIN RAFFLE EMBED — the active ritual
       const raffleEmbed = new EmbedBuilder()
         .setTitle(`🔮 ${name}`)
         .setColor(0x4B0082)
