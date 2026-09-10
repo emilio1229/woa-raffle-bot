@@ -81,24 +81,28 @@ export async function handleInteraction(interaction) {
     }
 
     if (interaction.isModalSubmit() && interaction.customId === "sigil_redeem_modal") {
+      if (!interaction.inGuild() || !interaction.guild) {
+        await interaction.reply({
+          content: "❌ Sigil redemption can only be used inside a server raffle channel.",
+          flags: 64
+        });
+        return;
+      }
+
+      await interaction.deferReply({ flags: 64 });
+
       const raffleId = interaction.fields.getTextInputValue("sigil_raffle_id").trim();
       const entryCountRaw = interaction.fields.getTextInputValue("sigil_entry_count").trim();
       const entryCount = Number.parseInt(entryCountRaw, 10);
       const raffle = raffleStore.getById(raffleId);
 
       if (!raffle || raffle.guildId !== interaction.guild.id || raffle.ended || Date.now() >= raffle.endsAt) {
-        await interaction.reply({
-          content: "❌ That raffle is not active right now.",
-          flags: 64
-        });
+        await interaction.editReply({ content: "❌ That raffle is not active right now." });
         return;
       }
 
       if (!Number.isInteger(entryCount) || entryCount <= 0) {
-        await interaction.reply({
-          content: "❌ Enter a valid positive number of raffle entries.",
-          flags: 64
-        });
+        await interaction.editReply({ content: "❌ Enter a valid positive number of raffle entries." });
         return;
       }
 
@@ -139,14 +143,12 @@ export async function handleInteraction(interaction) {
           console.error("sigil redemption embed update failed:", err);
         }
 
-        await interaction.reply({
-          embeds: [buildRedeemSuccessEmbed(raffle, entryCount, redemption.sigilCost, redemption.user.balance)],
-          flags: 64
+        await interaction.editReply({
+          embeds: [buildRedeemSuccessEmbed(raffle, entryCount, redemption.sigilCost, redemption.user.balance)]
         });
       } catch (err) {
-        await interaction.reply({
-          content: `❌ ${err.message}`,
-          flags: 64
+        await interaction.editReply({
+          content: `❌ ${err.message}`
         });
       }
 
