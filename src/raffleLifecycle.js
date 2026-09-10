@@ -17,7 +17,7 @@ async function clearRaffleButtons(client, raffle) {
 
   const channel = await client.channels.fetch(raffle.channelId).catch(() => null);
   if (!channel) {
-    return false;
+    return true;
   }
 
   const message = await channel.messages.fetch(raffle.messageId).catch(() => null);
@@ -32,7 +32,7 @@ async function clearRaffleButtons(client, raffle) {
 async function sendRaffleAnnouncement(client, raffle, winnerId, entryCount) {
   const channel = await client.channels.fetch(raffle.channelId).catch(() => null);
   if (!channel) {
-    return false;
+    return true;
   }
 
   if (winnerId) {

@@ -7,7 +7,7 @@ export function startAutoEndLoop(client) {
     try {
       const dueRaffles = raffleStore
         .all()
-        .filter(raffle => raffle.ending || (!raffle.ended && Date.now() >= raffle.endsAt));
+        .filter(raffle => raffle.ending || (raffle.ready && !raffle.ended && Date.now() >= raffle.endsAt));
 
       for (const raffle of dueRaffles) {
         console.log(`[autoEndManager] Ending raffle ${raffle.id} (guild=${raffle.guildId})`);
