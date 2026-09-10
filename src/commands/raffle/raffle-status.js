@@ -19,9 +19,9 @@ export default {
     const embed = new EmbedBuilder()
       .setTitle("🔮 Active Ritual Status")
       .addFields(
-        { name: "Prize", value: raffle.prize, inline: true },
+        { name: "Prize", value: raffle.prize || "Unknown", inline: true },
         { name: "Ends At", value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`, inline: true },
-        { name: "Invocation", value: raffle.wizardPhrase },
+        { name: "Invocation", value: raffle.wizardPhrase || "The sigils await...", inline: false },
         { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
       )
       .setColor(0x4B0082);
