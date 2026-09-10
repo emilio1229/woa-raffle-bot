@@ -103,19 +103,29 @@ export async function handleInteraction(interaction) {
       }
 
       try {
-        const { sigilCost, user } = sigilStore.redeem(
-          interaction.guild.id,
-          interaction.user.id,
-          entryCount,
-          raffle.id,
-          raffle.name
-        );
+        const originalEntries = [...(raffle.entries ?? [])];
+        raffle.entries = [...originalEntries];
 
-        raffle.entries ??= [];
         for (let index = 0; index < entryCount; index += 1) {
           raffle.entries.push(interaction.user.id);
         }
         raffleStore.save(raffle);
+
+        let redemption;
+
+        try {
+          redemption = sigilStore.redeem(
+            interaction.guild.id,
+            interaction.user.id,
+            entryCount,
+            raffle.id,
+            raffle.name
+          );
+        } catch (err) {
+          raffle.entries = originalEntries;
+          raffleStore.save(raffle);
+          throw err;
+        }
 
         try {
           const channel = await interaction.client.channels.fetch(raffle.channelId);
@@ -130,7 +140,7 @@ export async function handleInteraction(interaction) {
         }
 
         await interaction.reply({
-          embeds: [buildRedeemSuccessEmbed(raffle, entryCount, sigilCost, user.balance)],
+          embeds: [buildRedeemSuccessEmbed(raffle, entryCount, redemption.sigilCost, redemption.user.balance)],
           flags: 64
         });
       } catch (err) {

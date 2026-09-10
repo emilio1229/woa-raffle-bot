@@ -2,7 +2,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-export const SIGILS_PER_RAFFLE_ENTRY = Number(process.env.SIGILS_PER_RAFFLE_ENTRY ?? 100);
+const configuredSigilRate = Number.parseInt(process.env.SIGILS_PER_RAFFLE_ENTRY ?? "", 10);
+export const SIGILS_PER_RAFFLE_ENTRY = Number.isInteger(configuredSigilRate) && configuredSigilRate > 0
+  ? configuredSigilRate
+  : 100;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
