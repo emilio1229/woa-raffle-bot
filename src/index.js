@@ -10,6 +10,12 @@ import { handleInteraction } from "./interactionCreate.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function getCommandFiles(commandsRoot) {
+  return fs.readdirSync(commandsRoot, { recursive: true })
+    .filter(file => file.endsWith(".js"))
+    .map(file => path.join(commandsRoot, file));
+}
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -20,16 +26,15 @@ const client = new Client({
 
 client.commands = new Collection();
 
-const commandsPath = path.join(__dirname, "commands/raffle");
-const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"));
+const commandsPath = path.join(__dirname, "commands");
+const commandFiles = getCommandFiles(commandsPath);
 
-for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
+for (const filePath of commandFiles) {
   const imported = await import(`file://${filePath}`);
   const command = imported.default;
 
   if (!command || !command.data || !command.data.name) {
-    console.error(`❌ Invalid command file: ${file}`);
+    console.error(`❌ Invalid command file: ${path.relative(commandsPath, filePath)}`);
     continue;
   }
 

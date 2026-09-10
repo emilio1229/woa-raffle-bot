@@ -1,6 +1,7 @@
 // src/interactionCreate.js
 import { EmbedBuilder, AttachmentBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from "discord.js";
 import { buildActiveRaffleEmbed } from "./embedBuilder.js";
+import { withRaffleEntryLock } from "./raffleEntryLock.js";
 import { raffleStore } from "./raffleStore.js";
 import { sigilStore } from "./sigilStore.js";
 import { buildRedeemSuccessEmbed } from "./sigilUtils.js";
@@ -8,37 +9,20 @@ import { buildRedeemSuccessEmbed } from "./sigilUtils.js";
 import { handleBindSoul } from "./buttons/bindSoul.js";
 import { handleUnbindSoul } from "./buttons/unbindSoul.js";
 
-const redemptionLocks = new Map();
-
-async function withRedemptionLock(raffleId, callback) {
-  const previous = redemptionLocks.get(raffleId) ?? Promise.resolve();
-  let release;
-  const current = new Promise(resolve => {
-    release = resolve;
-  });
-
-  redemptionLocks.set(raffleId, current);
-  await previous;
-
-  try {
-    return await callback();
-  } finally {
-    release();
-
-    if (redemptionLocks.get(raffleId) === current) {
-      redemptionLocks.delete(raffleId);
-    }
-  }
-}
-
 function getRaffleIdFromButton(interaction) {
-  const [action, raffleId] = interaction.customId.split("_");
-
-  if (action === "bindSoul" || action === "unbindSoul") {
-    return raffleId || raffleStore.getIdByMessage(interaction.message?.id);
+  if (interaction.customId === "bindSoul" || interaction.customId === "unbindSoul") {
+    return raffleStore.getIdByMessage(interaction.message?.id);
   }
 
-  return raffleId;
+  if (interaction.customId.startsWith("bindSoul_")) {
+    return interaction.customId.slice("bindSoul_".length);
+  }
+
+  if (interaction.customId.startsWith("unbindSoul_")) {
+    return interaction.customId.slice("unbindSoul_".length);
+  }
+
+  return null;
 }
 
 export async function handleInteraction(interaction) {
@@ -130,7 +114,7 @@ export async function handleInteraction(interaction) {
       }
 
       try {
-        await withRedemptionLock(raffle.id, async () => {
+        await withRaffleEntryLock(raffle.id, async () => {
           const originalEntries = [...(raffle.entries ?? [])];
           raffle.entries = [...originalEntries];
 
