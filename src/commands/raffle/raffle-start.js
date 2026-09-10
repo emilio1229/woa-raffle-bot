@@ -163,7 +163,7 @@ export default {
             `**⏳ Ends At**`,
             `<t:${Math.floor(endsAt / 1000)}:F>`,
             ``,
-            `**🩸 Bound Souls**`,
+            `**💠 Bound Sigils**`,
             `${raffle.entries.length}`
           ].join("\n")
         )
