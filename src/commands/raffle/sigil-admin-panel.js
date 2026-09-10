@@ -17,7 +17,7 @@ export default {
     const stats = sigilStore.getGuildStats(interaction.guild.id);
     const activeRaffles = raffleStore
       .all()
-      .filter(raffle => raffle.guildId === interaction.guild.id && Date.now() < raffle.endsAt && !raffle.ended && !raffle.ending);
+      .filter(raffle => raffle.guildId === interaction.guild.id && raffle.ready && Date.now() < raffle.endsAt && !raffle.ended && !raffle.ending);
 
     await interaction.reply({ embeds: [buildAdminPanelEmbed(stats, activeRaffles)] });
   }

@@ -113,7 +113,15 @@ export async function handleInteraction(interaction) {
         await withRaffleEntryLock(raffleId, async () => {
           const raffle = raffleStore.getById(raffleId);
 
-          if (!raffle || raffle.guildId !== interaction.guild.id || raffle.ending || raffle.ended || Date.now() >= raffle.endsAt) {
+          if (
+            !raffle
+            || !raffle.ready
+            || !raffle.messageId
+            || raffle.guildId !== interaction.guild.id
+            || raffle.ending
+            || raffle.ended
+            || Date.now() >= raffle.endsAt
+          ) {
             await interaction.editReply({ content: "❌ That raffle is not active right now." });
             return;
           }

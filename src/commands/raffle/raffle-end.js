@@ -8,7 +8,7 @@ export default {
     .setDescription("Force-end the current ritual raffle."),
 
   async execute(interaction) {
-    const allRaffles = raffleStore.all().filter(r => !r.ended && !r.ending && Date.now() < r.endsAt);
+    const allRaffles = raffleStore.all().filter(r => r.ready && !r.ended && !r.ending && Date.now() < r.endsAt);
 
     if (allRaffles.length === 0) {
       return interaction.reply({

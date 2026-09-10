@@ -19,7 +19,7 @@ export default {
 
     const activeRaffles = raffleStore
       .all()
-      .filter(raffle => raffle.guildId === interaction.guild.id && Date.now() < raffle.endsAt && !raffle.ended && !raffle.ending);
+      .filter(raffle => raffle.guildId === interaction.guild.id && raffle.ready && Date.now() < raffle.endsAt && !raffle.ended && !raffle.ending);
     const balance = sigilStore.getBalance(interaction.guild.id, interaction.user.id);
 
     await interaction.reply({

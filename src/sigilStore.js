@@ -152,6 +152,35 @@ class SigilStore {
     return pending;
   }
 
+  completeRedemptions(transactionIds) {
+    const remaining = new Set(transactionIds);
+
+    if (remaining.size === 0) {
+      return 0;
+    }
+
+    let completed = 0;
+
+    for (const guild of Object.values(this.data.guilds)) {
+      for (const user of Object.values(guild.users)) {
+        for (const transaction of user.transactions) {
+          if (transaction.type === "redeem" && transaction.status === "pending" && remaining.has(transaction.id)) {
+            transaction.status = "completed";
+            transaction.completedAt = new Date().toISOString();
+            remaining.delete(transaction.id);
+            completed += 1;
+          }
+        }
+      }
+    }
+
+    if (completed > 0) {
+      this.persist();
+    }
+
+    return completed;
+  }
+
   award(guildId, userId, amount, reason, actorId) {
     return this.addTransaction(guildId, userId, amount, reason, {
       actorId,

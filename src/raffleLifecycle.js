@@ -4,6 +4,7 @@ import { AttachmentBuilder, EmbedBuilder } from "discord.js";
 import { withRaffleEntryLock } from "./raffleEntryLock.js";
 import { pickWinnerId } from "./raffleEntries.js";
 import { raffleStore } from "./raffleStore.js";
+import { sigilStore } from "./sigilStore.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,6 +122,25 @@ export async function concludeRaffle(client, raffleId) {
     }
 
     if (!updated.buttonsCleared || !updated.announcementSent) {
+      return {
+        status: "ending",
+        raffle: updated,
+        winnerId,
+        entryCount,
+        announced: updated.announcementSent
+      };
+    }
+
+    const redemptionTransactionIds = [...new Set(
+      entries
+        .map(entry => entry.transactionId)
+        .filter(Boolean)
+    )];
+
+    try {
+      sigilStore.completeRedemptions(redemptionTransactionIds);
+    } catch (err) {
+      console.error("Failed to finalize raffle redemptions:", err);
       return {
         status: "ending",
         raffle: updated,

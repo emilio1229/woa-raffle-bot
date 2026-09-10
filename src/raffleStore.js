@@ -20,7 +20,8 @@ function normalizeRaffle(raffle) {
     ending: Boolean(raffle?.ending),
     winnerId: typeof raffle?.winnerId === "string" ? raffle.winnerId : null,
     buttonsCleared: Boolean(raffle?.buttonsCleared),
-    announcementSent: Boolean(raffle?.announcementSent)
+    announcementSent: Boolean(raffle?.announcementSent),
+    ready: raffle?.ready ?? Boolean(raffle?.messageId)
   };
 }
 
@@ -122,6 +123,7 @@ class RaffleStore {
   getActive(guildId) {
     return this.raffles.find(
       raffle => raffle.guildId === guildId && !raffle.ended && !raffle.ending && Date.now() < raffle.endsAt
+        && raffle.ready
     );
   }
 

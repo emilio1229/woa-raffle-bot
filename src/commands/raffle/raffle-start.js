@@ -119,7 +119,8 @@ export default {
         invocationText,
         ritualType: "soul-binding",
         entries: [],
-        boundUsers: []
+        boundUsers: [],
+        ready: false
       });
 
       // TOP EMBED — ANNOUNCEMENT (ritual name + role)
@@ -160,7 +161,9 @@ export default {
         files: ["./assets/woa_ritual_bg.png"]
       });
 
-      raffleStore.setMessageId(raffle.id, raffleMsg.id);
+      raffle.messageId = raffleMsg.id;
+      raffle.ready = true;
+      raffleStore.save(raffle);
 
       await menuMessage.edit({
         content: "The ritual has begun.",
