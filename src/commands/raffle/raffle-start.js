@@ -66,7 +66,6 @@ export default {
       "The Sigilbound Ceremony"
     ];
 
-    // If user didn't provide a name → generate one
     const providedName = interaction.options.getString("name");
     const name = providedName || arcaneNames[Math.floor(Math.random() * arcaneNames.length)];
 
@@ -113,7 +112,7 @@ export default {
       const chosenRolePhrase =
         arcaneRolePhrases[Math.floor(Math.random() * arcaneRolePhrases.length)];
 
-      // Arcane invocation text (no role mention)
+      // Arcane invocation text
       const invocationText =
         "Ancient sigils awaken, humming softly in the astral dark.";
 
@@ -147,7 +146,7 @@ export default {
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
-      // MAIN RAFFLE EMBED — NO ROLE TAG
+      // MAIN RAFFLE EMBED — cosmic nebula background
       const raffleEmbed = new EmbedBuilder()
         .setTitle(`🔮 ${name}`)
         .setColor(0x4B0082)
@@ -167,17 +166,18 @@ export default {
             `**🩸 Bound Souls**`,
             `${raffle.entries.length}`
           ].join("\n")
-        );
+        )
+        .setImage("https://i.imgur.com/8fK4h7Z.png"); // cosmic nebula background
 
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("bindSoul")
-          .setLabel("🔮 Bind Soul")
+          .setLabel("💠 Offer Sigil")
           .setStyle(ButtonStyle.Primary),
 
         new ButtonBuilder()
           .setCustomId("unbindSoul")
-          .setLabel("💀 Unbind Soul")
+          .setLabel("🜂 Reclaim Sigil")
           .setStyle(ButtonStyle.Secondary)
       );
 
