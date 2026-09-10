@@ -2,7 +2,7 @@
 import { fileURLToPath } from "url";
 import path from "path";
 import { raffleStore } from "./raffleStore.js";
-import { buildRaffleEmbed } from "./embedBuilder.js";
+import { buildRaffleEndedEmbed } from "./embedBuilder.js";
 import { EmbedBuilder, AttachmentBuilder } from "discord.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,9 +27,8 @@ export function startAutoEndLoop(client) {
             console.log(`[autoEndManager] No entries for raffle ${raffle.id}`);
           }
 
-          // Build completed embed
-          const endedRaffle = { ...raffle, ended: true };
-          const endingEmbed = buildRaffleEmbed(endedRaffle, entries.length, winnerId);
+          // Build completed embed (separate from active embed)
+          const endingEmbed = buildRaffleEndedEmbed(raffle, entries.length, winnerId);
 
           // Try to update the original raffle message (remove buttons)
           try {
