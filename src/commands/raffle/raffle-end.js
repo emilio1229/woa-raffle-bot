@@ -60,7 +60,8 @@ export default {
         if (winnerId) {
           const winners = [winnerId];
           const winnerTag = winners.map(id => `<@${id}>`).join(', ');
-          const roleTag = raffle.roleId ? `<@&${raffle.roleId}>` : null;
+          const roleId = raffle.tagRole ?? raffle.roleId ?? null;
+          const roleMention = roleId ? `<@&${roleId}>` : null;
 
           const grandEmbed = new EmbedBuilder()
             .setColor(0xFF4500)
@@ -68,7 +69,7 @@ export default {
             .setDescription(
               `The sigil storm erupts in violent cosmic fury.\n\n` +
               `🔮 **Winner:** ${winnerTag}\n` +
-              (roleTag ? `🜂 **Ritual Role:** ${roleTag}\n` : '') +
+              (roleMention ? `🜂 **Ritual Role:** ${roleMention}\n` : '') +
               `\nThe obelisk cracks open as destiny crowns its new bearer.`
             )
             .setImage("attachment://woa_winner_bg.png")
@@ -78,11 +79,16 @@ export default {
           const attachment = new AttachmentBuilder("./assets/woa_winner_bg.png", { name: "woa_winner_bg.png" });
 
           await channel.send({
+            content: roleMention ? `${roleMention}` : undefined,
             embeds: [grandEmbed],
-            files: [attachment]
+            files: [attachment],
+            allowedMentions: { roles: roleId ? [roleId] : [] }
           });
         } else {
           // No winner — send a consolation embed
+          const roleId = raffle.tagRole ?? raffle.roleId ?? null;
+          const roleMention = roleId ? `<@&${roleId}>` : null;
+
           const noWinnerEmbed = new EmbedBuilder()
             .setColor(0x2F4F4F)
             .setTitle(`Ritual Concluded — No Champion`)
@@ -90,7 +96,11 @@ export default {
             .setFooter({ text: "Wizards of Ark" })
             .setTimestamp();
 
-          await channel.send({ embeds: [noWinnerEmbed] });
+          await channel.send({
+            content: roleMention ? `${roleMention}` : undefined,
+            embeds: [noWinnerEmbed],
+            allowedMentions: { roles: roleId ? [roleId] : [] }
+          });
         }
       } catch (sendErr) {
         console.error("Announcement send failed:", sendErr);
