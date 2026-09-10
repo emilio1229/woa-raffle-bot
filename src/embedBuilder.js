@@ -25,8 +25,8 @@ export function buildRaffleEmbed(raffle, entryCount, winnerId = null) {
         value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`
       },
       {
-        name: "💀 Souls Bound",
-        value: `${entryCount} ${entryCount === 1 ? "soul" : "souls"}`
+        name: "💠 Sigils Bound",
+        value: `${entryCount} ${entryCount === 1 ? "sigil" : "sigils"}`
       },
       {
         name: "🧙‍♂️ Invoked Role",
@@ -36,7 +36,7 @@ export function buildRaffleEmbed(raffle, entryCount, winnerId = null) {
     );
 
     embed.setFooter({
-      text: "Offer your soul to the ritual…"
+      text: "Offer your sigil to the ritual…"
     });
   }
 
@@ -53,7 +53,7 @@ export function buildRaffleEndedEmbed(raffle, entryCount, winnerId = null) {
         { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
         { name: "📢 Ritual Role", value: raffle.tagRole ? `<@&${raffle.tagRole}>` : "None", inline: false },
         { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
-        { name: "📜 Souls Bound", value: `${entryCount} ${entryCount === 1 ? "soul" : "souls"}`, inline: true }
+        { name: "💠 Sigils Bound", value: `${entryCount} ${entryCount === 1 ? "sigil" : "sigils"}`, inline: true }
       )
       .setFooter({ text: "Wizards of Ark • Ascension Complete" })
       .setTimestamp();
@@ -66,7 +66,7 @@ export function buildRaffleEndedEmbed(raffle, entryCount, winnerId = null) {
       .setDescription("The ritual faded into the void; no winner could be chosen.")
       .addFields(
         { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
-        { name: "📜 Souls Bound", value: `${entryCount} ${entryCount === 1 ? "soul" : "souls"}`, inline: true }
+        { name: "💠 Sigils Bound", value: `${entryCount} ${entryCount === 1 ? "sigil" : "sigils"}`, inline: true }
       )
       .setFooter({ text: "Wizards of Ark" })
       .setTimestamp();

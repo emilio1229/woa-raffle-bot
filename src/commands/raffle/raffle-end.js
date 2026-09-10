@@ -59,13 +59,13 @@ async function executeRaffleEnd(interaction, raffle) {
     .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
     .setDescription(
       winnerId
-        ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${raffle.prize}`
-        : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
+        ? `The arcane forces have chosen <@${winnerId}>\n\n**Prize:** ${raffle.prize}`
+        : `💀 The ritual found **no sigils** to bind.\n\nNo winner was chosen.`
     )
     .addFields(
       { name: "Prize", value: raffle.prize || "Unknown", inline: true },
       { name: "Invocation", value: raffle.invocationText || "The sigils await...", inline: false },
-      { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
+      { name: "💠 Bound Sigils", value: `${raffle.entries.length}`, inline: true }
     )
     .setColor(0x4B0082);
 
@@ -89,7 +89,7 @@ async function executeRaffleEnd(interaction, raffle) {
           { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
           { name: "📢 Ritual Role", value: raffle.tagRole ? `<@&${raffle.tagRole}>` : "None", inline: false },
           { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
-          { name: "📜 Souls Bound", value: `${raffle.entries.length}`, inline: true }
+          { name: "💠 Sigils Bound", value: `${raffle.entries.length}`, inline: true }
         )
         .setImage("attachment://woa_winner_bg.png")
         .setFooter({ text: "Wizards of Ark • Ascension Complete" })

@@ -34,7 +34,7 @@ export async function handleUnbindSoul(interaction, raffleId) {
         `The sigils dim as your offering fades.`,
         ``,
         `🜂 **Sigil Reclaimed**`,
-        `🩸 **Remaining Sigils:** ${raffle.entries.length}`,
+        `💠 **Remaining Sigils:** ${raffle.entries.length}`,
         ``,
         `⟐ The astral ledger adjusts to your departure.`
       ].join("\n")
@@ -62,7 +62,7 @@ export async function handleUnbindSoul(interaction, raffleId) {
           `**⏳ Ends At**`,
           `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
           ``,
-          `**🩸 Bound Souls**`,
+          `**💠 Bound Sigils**`,
           `${raffle.entries.length}`
         ].join("\n")
       )

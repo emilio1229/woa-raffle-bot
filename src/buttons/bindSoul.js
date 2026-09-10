@@ -34,7 +34,7 @@ export async function handleBindSoul(interaction, raffleId) {
         `The sigils flare as your offering is accepted.`,
         ``,
         `💠 **Sigil Offered**`,
-        `🩸 **Total Sigils:** ${raffle.entries.length}`,
+        `💠 **Total Sigils:** ${raffle.entries.length}`,
         ``,
         `⟐ The astral ledger marks your contribution.`
       ].join("\n")
@@ -62,7 +62,7 @@ export async function handleBindSoul(interaction, raffleId) {
           `**⏳ Ends At**`,
           `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
           ``,
-          `**🩸 Bound Souls**`,
+          `**💠 Bound Sigils**`,
           `${raffle.entries.length}`
         ].join("\n")
       )

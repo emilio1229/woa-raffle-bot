@@ -67,14 +67,15 @@ export function startAutoEndLoop(client) {
             if (!destChannel) {
               console.warn("[autoEndManager] destination channel not available, skipping announcement.");
             } else if (winnerId) {
-              const winnerTag = `<@${winnerId}>`;
-              const roleTag = raffle.tagRole ? ` <@&${raffle.tagRole}>` : "";
-
               const grandEmbed = new EmbedBuilder()
                 .setColor(0xFF4500)
                 .setTitle("✨ A Champion Has Been Chosen ✨")
-                .setDescription(
-                  `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}\n\nThe obelisk cracks open as destiny crowns its new bearer.`
+                .setDescription("The sigil storm erupts in violent cosmic fury.")
+                .addFields(
+                  { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
+                  { name: "📢 Ritual Role", value: raffle.tagRole ? `<@&${raffle.tagRole}>` : "None", inline: false },
+                  { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
+                  { name: "💠 Sigils Bound", value: `${entries.length}`, inline: true }
                 )
                 .setImage("attachment://woa_winner_bg.png")
                 .setFooter({ text: "Wizards of Ark • Ascension Complete" })
