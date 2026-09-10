@@ -166,16 +166,14 @@ export async function handleInteraction(interaction) {
           if (winnerId) {
             try {
               const channel = await interaction.client.channels.fetch(updated.channelId);
-              const winnerTag = `<@${winnerId}>`;
-              const roleTag = updated.tagRole ? ` <@&${updated.tagRole}>` : "";
 
               const grandEmbed = new EmbedBuilder()
                 .setColor(0xFF4500)
                 .setTitle("✨ A Champion Has Been Chosen ✨")
-                .setDescription(
-                  `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}`
-                )
+                .setDescription("The sigil storm erupts in violent cosmic fury.")
                 .addFields(
+                  { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
+                  { name: "📢 Ritual Role", value: updated.tagRole ? `<@&${updated.tagRole}>` : "None", inline: false },
                   { name: "🎁 Prize", value: `**${updated.prize}**`, inline: false },
                   { name: "📜 Souls Bound", value: `${entries.length}`, inline: true }
                 )
