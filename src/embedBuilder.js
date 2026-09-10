@@ -40,32 +40,35 @@ export function buildRaffleEmbed(raffle, entryCount, winnerId = null) {
     });
   }
 
-  // Completed ritual
-  else {
-    embed.addFields(
+  return embed;
+}
+
+export function buildRaffleEndedEmbed(raffle, entryCount, winnerId = null) {
+  let description = "";
+
+  if (winnerId) {
+    description = `🏆 The ritual has chosen its champion!\n\n👑 **Winner:** <@${winnerId}>`;
+  } else {
+    description = "💀 No souls were bound — the ritual yields no winner.";
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor(0xFF6B00)
+    .setTitle("✨ Ritual Complete ✨")
+    .setDescription(description)
+    .addFields(
       {
-        name: "🏁 Ritual Completed",
-        value: `<t:${Math.floor(raffle.endsAt / 1000)}:F>`
+        name: "🎁 Offering",
+        value: `**${raffle.prize}**`,
+        inline: false
       },
       {
         name: "📜 Final Souls Bound",
         value: `${entryCount} ${entryCount === 1 ? "soul" : "souls"}`
-      },
-      {
-        name: "👑 Chosen Soul",
-        value: winnerId ? `<@${winnerId}>` : "None"
-      },
-      {
-        name: "🧙‍♂️ Invoked Role",
-        value: raffle.tagRole ? `<@&${raffle.tagRole}>` : "None",
-        inline: false
       }
-    );
-
-    embed.setFooter({
-      text: "The ritual is complete."
-    });
-  }
+    )
+    .setFooter({ text: "The ritual has concluded." })
+    .setTimestamp();
 
   return embed;
 }
