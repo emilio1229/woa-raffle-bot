@@ -116,13 +116,6 @@ export async function handleInteraction(interaction) {
       try {
         await withRaffleEntryLock(raffle.id, async () => {
           const originalEntries = [...(raffle.entries ?? [])];
-          raffle.entries = [...originalEntries];
-
-          for (let index = 0; index < entryCount; index += 1) {
-            raffle.entries.push(interaction.user.id);
-          }
-          raffleStore.save(raffle);
-
           let redemption;
 
           try {
@@ -134,9 +127,12 @@ export async function handleInteraction(interaction) {
               raffle.name
             );
           } catch (err) {
-            raffle.entries = originalEntries;
-            raffleStore.save(raffle);
             throw err;
+          }
+
+          raffle.entries = [...originalEntries];
+          for (let index = 0; index < entryCount; index += 1) {
+            raffle.entries.push(interaction.user.id);
           }
 
           try {
@@ -149,10 +145,11 @@ export async function handleInteraction(interaction) {
             });
           } catch (err) {
             raffle.entries = originalEntries;
-            raffleStore.save(raffle);
             sigilStore.rollbackTransaction(interaction.guild.id, interaction.user.id, redemption.transaction.id);
             throw new Error("The ritual display could not be updated. Your sigils were not spent.");
           }
+
+          raffleStore.save(raffle);
 
           await interaction.editReply({
             embeds: [buildRedeemSuccessEmbed(raffle, entryCount, redemption.sigilCost, redemption.user.balance)]

@@ -28,8 +28,31 @@ export async function handleBindSoul(interaction, raffleId) {
       });
     }
 
+    const originalEntries = [...raffle.entries];
+    const originalBoundUsers = [...raffle.boundUsers];
+
     raffle.boundUsers.push(userId);
     raffle.entries.push(userId);
+
+    try {
+      const channel = await interaction.client.channels.fetch(raffle.channelId);
+      const msg = await channel.messages.fetch(raffle.messageId);
+
+      await msg.edit({
+        embeds: [buildActiveRaffleEmbed(raffle)],
+        components: msg.components,
+        files: ["./assets/woa_ritual_bg.png"]
+      });
+    } catch (err) {
+      raffle.entries = originalEntries;
+      raffle.boundUsers = originalBoundUsers;
+
+      return interaction.reply({
+        content: "❌ The ritual could not be updated. Your sigil was not added.",
+        flags: 64
+      });
+    }
+
     raffleStore.save(raffle);
 
     const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
@@ -50,19 +73,6 @@ export async function handleBindSoul(interaction, raffleId) {
       )
       .setColor(0x5A00A0)
       .setFooter({ text: "The ritual deepens…" });
-
-    try {
-      const channel = await interaction.client.channels.fetch(raffle.channelId);
-      const msg = await channel.messages.fetch(raffle.messageId);
-
-      await msg.edit({
-        embeds: [buildActiveRaffleEmbed(raffle)],
-        components: msg.components,
-        files: ["./assets/woa_ritual_bg.png"]
-      });
-    } catch (err) {
-      console.error("bindSoul embed update failed:", err);
-    }
 
     return interaction.reply({
       embeds: [embed],

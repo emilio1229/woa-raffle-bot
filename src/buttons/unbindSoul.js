@@ -35,8 +35,31 @@ export async function handleUnbindSoul(interaction, raffleId) {
       });
     }
 
+    const originalEntries = [...raffle.entries];
+    const originalBoundUsers = [...raffle.boundUsers];
+
     raffle.boundUsers = raffle.boundUsers.filter(id => id !== userId);
     removeSingleEntry(raffle.entries, userId);
+
+    try {
+      const channel = await interaction.client.channels.fetch(raffle.channelId);
+      const msg = await channel.messages.fetch(raffle.messageId);
+
+      await msg.edit({
+        embeds: [buildActiveRaffleEmbed(raffle)],
+        components: msg.components,
+        files: ["./assets/woa_ritual_bg.png"]
+      });
+    } catch (err) {
+      raffle.entries = originalEntries;
+      raffle.boundUsers = originalBoundUsers;
+
+      return interaction.reply({
+        content: "❌ The ritual could not be updated. Your sigil was not reclaimed.",
+        flags: 64
+      });
+    }
+
     raffleStore.save(raffle);
 
     const glow = ["🜂🌑", "🜂🕯️", "🜂🌫️", "🜂⚫"];
@@ -57,19 +80,6 @@ export async function handleUnbindSoul(interaction, raffleId) {
       )
       .setColor(0x2E003E)
       .setFooter({ text: "The ritual shifts…" });
-
-    try {
-      const channel = await interaction.client.channels.fetch(raffle.channelId);
-      const msg = await channel.messages.fetch(raffle.messageId);
-
-      await msg.edit({
-        embeds: [buildActiveRaffleEmbed(raffle)],
-        components: msg.components,
-        files: ["./assets/woa_ritual_bg.png"]
-      });
-    } catch (err) {
-      console.error("unbindSoul embed update failed:", err);
-    }
 
     return interaction.reply({
       embeds: [embed],
