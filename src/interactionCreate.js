@@ -90,7 +90,6 @@ export async function handleInteraction(interaction) {
           return;
         }
 
-        const { EmbedBuilder } = require("discord.js");
         const embed = new EmbedBuilder()
           .setTitle("🔮 Active Ritual Status")
           .addFields(
@@ -136,9 +135,9 @@ export async function handleInteraction(interaction) {
           const updated = raffleStore.getById(raffle.id);
           const entries = updated.entries ?? [];
 
-          let winner = null;
+          let winnerId = null;
           if (entries.length > 0) {
-            winner = entries[Math.floor(Math.random() * entries.length)];
+            winnerId = entries[Math.floor(Math.random() * entries.length)];
           }
 
           const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
@@ -146,8 +145,8 @@ export async function handleInteraction(interaction) {
           const embed = new EmbedBuilder()
             .setTitle(`${glow[Math.floor(Math.random() * glow.length)]} Ritual Concluded`)
             .setDescription(
-              winner
-                ? `The arcane forces have chosen <@${winner}>.\n\n**Prize:** ${updated.prize}`
+              winnerId
+                ? `The arcane forces have chosen <@${winnerId}>.\n\n**Prize:** ${updated.prize}`
                 : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
             )
             .addFields(
@@ -164,10 +163,10 @@ export async function handleInteraction(interaction) {
           } catch {}
 
           // Send grand winner announcement
-          if (winner) {
+          if (winnerId) {
             try {
               const channel = await interaction.client.channels.fetch(updated.channelId);
-              const winnerTag = `<@${winner}>`;
+              const winnerTag = `<@${winnerId}>`;
               const roleTag = updated.tagRole ? ` <@&${updated.tagRole}>` : "";
 
               const grandEmbed = new EmbedBuilder()
