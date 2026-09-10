@@ -12,7 +12,7 @@ export function buildRaffleEmbed(raffle, entryCount, winnerId = null) {
       },
       {
         name: "🪄 Arcane Invocation",
-        value: raffle.wizardPhrase || "The sigils await a chosen role…",
+        value: raffle.invocationText || "The sigils await a chosen role…",
         inline: false
       }
     );
@@ -44,33 +44,36 @@ export function buildRaffleEmbed(raffle, entryCount, winnerId = null) {
 }
 
 export function buildRaffleEndedEmbed(raffle, entryCount, winnerId = null) {
-  let description = "";
-
   if (winnerId) {
-    description = `🏆 The ritual has chosen its champion!\n\n👑 **Winner:** <@${winnerId}>`;
+    const winnerTag = `<@${winnerId}>`;
+    const roleTag = raffle.tagRole ? ` <@&${raffle.tagRole}>` : "";
+
+    const embed = new EmbedBuilder()
+      .setColor(0xFF4500)
+      .setTitle("✨ A Champion Has Been Chosen ✨")
+      .setDescription(
+        `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}`
+      )
+      .addFields(
+        { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
+        { name: "📜 Souls Bound", value: `${entryCount} ${entryCount === 1 ? "soul" : "souls"}`, inline: true }
+      )
+      .setFooter({ text: "Wizards of Ark • Ascension Complete" })
+      .setTimestamp();
+
+    return embed;
   } else {
-    description = "💀 No souls were bound — the ritual yields no winner.";
+    const embed = new EmbedBuilder()
+      .setColor(0x2F4F4F)
+      .setTitle("Ritual Concluded — No Champion")
+      .setDescription("The ritual faded into the void; no winner could be chosen.")
+      .addFields(
+        { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
+        { name: "📜 Souls Bound", value: `${entryCount} ${entryCount === 1 ? "soul" : "souls"}`, inline: true }
+      )
+      .setFooter({ text: "Wizards of Ark" })
+      .setTimestamp();
+
+    return embed;
   }
-
-  const roleTag = raffle.tagRole ? `\n\n📢 <@&${raffle.tagRole}>` : "";
-
-  const embed = new EmbedBuilder()
-    .setColor(0xFF6B00)
-    .setTitle("✨ Ritual Complete ✨")
-    .setDescription(description + roleTag)
-    .addFields(
-      {
-        name: "🎁 Offering",
-        value: `**${raffle.prize}**`,
-        inline: false
-      },
-      {
-        name: "📜 Final Souls Bound",
-        value: `${entryCount} ${entryCount === 1 ? "soul" : "souls"}`
-      }
-    )
-    .setFooter({ text: "The ritual has concluded." })
-    .setTimestamp();
-
-  return embed;
 }
