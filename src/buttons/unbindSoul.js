@@ -66,11 +66,12 @@ export async function handleUnbindSoul(interaction, raffleId) {
           `${raffle.entries.length}`
         ].join("\n")
       )
-      .setImage("https://i.imgur.com/8fK4h7Z.png");
+      .setImage("attachment://woa_ritual_bg.png");
 
     await msg.edit({
       embeds: [updatedEmbed],
-      components: msg.components
+      components: msg.components,
+      files: ["./assets/woa_ritual_bg.png"]
     });
   } catch (err) {
     console.error("unbindSoul embed update failed:", err);
