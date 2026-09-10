@@ -1,14 +1,35 @@
-import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder } from "discord.js";
+import { SlashCommandBuilder, ActionRowBuilder, StringSelectMenuBuilder, PermissionsBitField } from "discord.js";
 import { concludeRaffle } from "../../raffleLifecycle.js";
 import { raffleStore } from "../../raffleStore.js";
+import { requireAdmin } from "../../sigilUtils.js";
 
 export default {
   data: new SlashCommandBuilder()
     .setName("raffle-end")
-    .setDescription("Force-end the current ritual raffle."),
+    .setDescription("Force-end the current ritual raffle.")
+    .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
 
   async execute(interaction) {
-    const allRaffles = raffleStore.all().filter(r => r.ready && !r.ended && !r.ending && Date.now() < r.endsAt);
+    if (!interaction.inGuild() || !interaction.guild) {
+      return interaction.reply({
+        content: "❌ This command can only be used inside a server raffle channel.",
+        flags: 64
+      });
+    }
+
+    if (!await requireAdmin(interaction)) {
+      return;
+    }
+
+    const allRaffles = raffleStore
+      .all()
+      .filter(
+        raffle => raffle.guildId === interaction.guild.id
+          && raffle.ready
+          && !raffle.ended
+          && !raffle.ending
+          && Date.now() < raffle.endsAt
+      );
 
     if (allRaffles.length === 0) {
       return interaction.reply({

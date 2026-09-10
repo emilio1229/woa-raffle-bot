@@ -58,14 +58,16 @@ class RaffleStore {
   }
 
   // Create a new raffle
-  create(data) {
+  create(data, { persist = true } = {}) {
     const raffle = normalizeRaffle({
       id: Date.now().toString(),
       ...data
     });
 
     this.raffles.push(raffle);
-    this.persist();
+    if (persist) {
+      this.persist();
+    }
     return raffle;
   }
 

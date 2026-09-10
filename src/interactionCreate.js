@@ -239,8 +239,17 @@ export async function handleInteraction(interaction) {
         } catch {}
 
         const selectedId = interaction.values[0];
+        const selectedRaffle = raffleStore.getById(selectedId);
 
         try {
+          if (!interaction.inGuild() || !interaction.guild || !selectedRaffle || selectedRaffle.guildId !== interaction.guild.id) {
+            await interaction.editReply({
+              content: "Selected ritual not found.",
+              components: []
+            });
+            return;
+          }
+
           const result = await concludeRaffle(interaction.client, selectedId);
 
           if (result.status === "missing") {

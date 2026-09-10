@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { raffleStore } from "../../raffleStore.js";
 import { buildActiveRaffleEmbed } from "../../embedBuilder.js";
 import { parseTime } from "../../utils/timeParser.js";
@@ -121,7 +121,7 @@ export default {
         entries: [],
         boundUsers: [],
         ready: false
-      });
+      }, { persist: false });
 
       // TOP EMBED — ANNOUNCEMENT (ritual name + role)
       const announcementEmbed = new EmbedBuilder()
@@ -138,32 +138,41 @@ export default {
         )
         .setColor(0x4B0082);
 
-      await interaction.channel.send({ embeds: [announcementEmbed] });
+      try {
+        await interaction.channel.send({ embeds: [announcementEmbed] });
 
-      // MAIN RAFFLE EMBED — the active ritual
-      const raffleEmbed = buildActiveRaffleEmbed(raffle);
+        // MAIN RAFFLE EMBED — the active ritual
+        const raffleEmbed = buildActiveRaffleEmbed(raffle);
 
-      const buttonRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId("bindSoul")
-          .setLabel("💠 Offer Sigil")
-          .setStyle(ButtonStyle.Primary),
+        const buttonRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("bindSoul")
+            .setLabel("💠 Offer Sigil")
+            .setStyle(ButtonStyle.Primary),
 
-        new ButtonBuilder()
-          .setCustomId("unbindSoul")
-          .setLabel("🜂 Reclaim Sigil")
-          .setStyle(ButtonStyle.Secondary)
-      );
+          new ButtonBuilder()
+            .setCustomId("unbindSoul")
+            .setLabel("🜂 Reclaim Sigil")
+            .setStyle(ButtonStyle.Secondary)
+        );
 
-      const raffleMsg = await interaction.channel.send({
-        embeds: [raffleEmbed],
-        components: [buttonRow],
-        files: ["./assets/woa_ritual_bg.png"]
-      });
+        const raffleMsg = await interaction.channel.send({
+          embeds: [raffleEmbed],
+          components: [buttonRow],
+          files: ["./assets/woa_ritual_bg.png"]
+        });
 
-      raffle.messageId = raffleMsg.id;
-      raffle.ready = true;
-      raffleStore.save(raffle);
+        raffle.messageId = raffleMsg.id;
+        raffle.ready = true;
+        raffleStore.save(raffle);
+      } catch (err) {
+        raffleStore.end(raffle.id);
+        await menuMessage.edit({
+          content: "❌ Ritual setup failed before the circle could be bound.",
+          components: []
+        });
+        return;
+      }
 
       await menuMessage.edit({
         content: "The ritual has begun.",
