@@ -1,31 +1,40 @@
-import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, RoleSelectMenuBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  AttachmentBuilder,
+  ActionRowBuilder,
+  RoleSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle
+} from "discord.js";
+
 import { raffleStore } from "../../raffleStore.js";
 import { buildActiveRaffleEmbed } from "../../embedBuilder.js";
 import { parseTime } from "../../utils/timeParser.js";
 
-data: new SlashCommandBuilder()
-  .setName("raffle-start")
-  .setDescription("Begin a new arcane ritual raffle.")
+export default {
+  data: new SlashCommandBuilder()
+    .setName("raffle-start")
+    .setDescription("Begin a new arcane ritual raffle.")
 
-  // REQUIRED OPTIONS FIRST
-  .addStringOption(opt =>
-    opt.setName("prize")
-      .setDescription("The offering for the ritual.")
-      .setRequired(true)
-  )
-  .addStringOption(opt =>
-    opt.setName("duration")
-      .setDescription("Duration (10m, 2h, tomorrow 5pm, etc.)")
-      .setRequired(true)
-  )
+    // REQUIRED FIRST
+    .addStringOption(opt =>
+      opt.setName("prize")
+        .setDescription("The offering for the ritual.")
+        .setRequired(true)
+    )
+    .addStringOption(opt =>
+      opt.setName("duration")
+        .setDescription("Duration (10m, 2h, tomorrow 5pm, etc.)")
+        .setRequired(true)
+    )
 
-  // OPTIONAL OPTIONS LAST
-  .addStringOption(opt =>
-    opt.setName("name")
-      .setDescription("Name of the ritual raffle (optional)")
-      .setRequired(false)
-  ),
-
+    // OPTIONAL LAST
+    .addStringOption(opt =>
+      opt.setName("name")
+        .setDescription("Name of the ritual raffle (optional)")
+        .setRequired(false)
+    ),
 
   async execute(interaction) {
     const prize = interaction.options.getString("prize");
@@ -48,7 +57,6 @@ data: new SlashCommandBuilder()
       });
     }
 
-    // Random arcane names
     const arcaneNames = [
       "Veil of Whispered Sigils",
       "Circle of Astral Binding",
@@ -65,7 +73,6 @@ data: new SlashCommandBuilder()
     const providedName = interaction.options.getString("name");
     const name = providedName || arcaneNames[Math.floor(Math.random() * arcaneNames.length)];
 
-    // Role selection menu
     const roleRow = new ActionRowBuilder().addComponents(
       new RoleSelectMenuBuilder()
         .setCustomId("tagRole")
@@ -91,7 +98,6 @@ data: new SlashCommandBuilder()
 
       const tagRole = roleSelection.values[0];
 
-      // Random arcane role-tag phrases
       const arcaneRolePhrases = [
         "Sigils Align With",
         "Essence Called Forth",
@@ -108,11 +114,9 @@ data: new SlashCommandBuilder()
       const chosenRolePhrase =
         arcaneRolePhrases[Math.floor(Math.random() * arcaneRolePhrases.length)];
 
-      // Arcane invocation text
       const invocationText =
         "Ancient sigils awaken, humming softly in the astral dark.";
 
-      // Create raffle entry
       const raffle = raffleStore.create({
         guildId: interaction.guild.id,
         channelId: interaction.channel.id,
@@ -126,7 +130,6 @@ data: new SlashCommandBuilder()
         boundUsers: []
       });
 
-      // TOP EMBED — ANNOUNCEMENT (ritual name + role)
       const announcementEmbed = new EmbedBuilder()
         .setTitle(`🔮 THE RITUAL BEGINS`)
         .setDescription(
@@ -143,7 +146,6 @@ data: new SlashCommandBuilder()
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
-      // MAIN RAFFLE EMBED — the active ritual
       const raffleEmbed = buildActiveRaffleEmbed(raffle);
 
       const buttonRow = new ActionRowBuilder().addComponents(
