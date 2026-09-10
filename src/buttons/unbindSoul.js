@@ -7,7 +7,7 @@ import { raffleStore } from "../raffleStore.js";
 export async function handleUnbindSoul(interaction, raffleId) {
   return withRaffleEntryLock(raffleId, async () => {
     const raffle = raffleStore.getById(raffleId);
-    if (!raffle) {
+    if (!raffle || raffle.ending || raffle.ended) {
       return interaction.reply({
         content: "❌ This ritual has already ended.",
         flags: 64
@@ -40,6 +40,18 @@ export async function handleUnbindSoul(interaction, raffleId) {
     raffle.entries = removal.entries;
 
     try {
+      raffleStore.save(raffle);
+    } catch (err) {
+      raffle.entries = originalEntries;
+      raffle.boundUsers = originalBoundUsers;
+
+      return interaction.reply({
+        content: "❌ The ritual ledger could not be updated. Your sigil was not reclaimed.",
+        flags: 64
+      });
+    }
+
+    try {
       const channel = await interaction.client.channels.fetch(raffle.channelId);
       const msg = await channel.messages.fetch(raffle.messageId);
 
@@ -51,14 +63,13 @@ export async function handleUnbindSoul(interaction, raffleId) {
     } catch (err) {
       raffle.entries = originalEntries;
       raffle.boundUsers = originalBoundUsers;
+      raffleStore.save(raffle);
 
       return interaction.reply({
         content: "❌ The ritual could not be updated. Your sigil was not reclaimed.",
         flags: 64
       });
     }
-
-    raffleStore.save(raffle);
 
     const glow = ["🜂🌑", "🜂🕯️", "🜂🌫️", "🜂⚫"];
     const glowSymbol = glow[Math.floor(Math.random() * glow.length)];

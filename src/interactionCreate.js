@@ -113,7 +113,7 @@ export async function handleInteraction(interaction) {
         await withRaffleEntryLock(raffleId, async () => {
           const raffle = raffleStore.getById(raffleId);
 
-          if (!raffle || raffle.guildId !== interaction.guild.id || raffle.ended || Date.now() >= raffle.endsAt) {
+          if (!raffle || raffle.guildId !== interaction.guild.id || raffle.ending || raffle.ended || Date.now() >= raffle.endsAt) {
             await interaction.editReply({ content: "❌ That raffle is not active right now." });
             return;
           }
@@ -152,7 +152,23 @@ export async function handleInteraction(interaction) {
             throw new Error("The ritual display could not be updated. Your sigils were not spent.");
           }
 
-          raffleStore.save(raffle);
+          try {
+            raffleStore.save(raffle);
+          } catch (err) {
+            raffle.entries = originalEntries;
+            sigilStore.rollbackTransaction(interaction.guild.id, interaction.user.id, redemption.transaction.id);
+            throw new Error("The ritual ledger could not be updated. Your sigils were not spent.");
+          }
+
+          try {
+            sigilStore.completeRedemption(
+              interaction.guild.id,
+              interaction.user.id,
+              redemption.transaction.id
+            );
+          } catch (err) {
+            console.error("Failed to finalize redemption transaction:", err);
+          }
 
           await interaction.editReply({
             embeds: [buildRedeemSuccessEmbed(raffle, entryCount, redemption.sigilCost, redemption.user.balance)]
@@ -222,6 +238,14 @@ export async function handleInteraction(interaction) {
           if (result.status === "missing") {
             await interaction.editReply({
               content: "Selected ritual not found.",
+              components: []
+            });
+            return;
+          }
+
+          if (result.status === "ending") {
+            await interaction.editReply({
+              content: "🔮 The ritual is being finalized and will retry cleanup automatically if needed.",
               components: []
             });
             return;

@@ -7,7 +7,7 @@ export default {
     .setDescription("Show the current ritual raffle status."),
 
   async execute(interaction) {
-    const allRaffles = raffleStore.all().filter(r => !r.ended && Date.now() < r.endsAt);
+    const allRaffles = raffleStore.all().filter(r => !r.ended && !r.ending && Date.now() < r.endsAt);
 
     if (allRaffles.length === 0) {
       return interaction.reply({

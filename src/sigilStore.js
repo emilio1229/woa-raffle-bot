@@ -122,6 +122,36 @@ class SigilStore {
     return true;
   }
 
+  completeRedemption(guildId, userId, transactionId) {
+    const user = this.ensureUser(guildId, userId);
+    const transaction = user.transactions.find(tx => tx.id === transactionId && tx.type === "redeem");
+
+    if (!transaction) {
+      return false;
+    }
+
+    transaction.status = "completed";
+    transaction.completedAt = new Date().toISOString();
+    this.persist();
+    return true;
+  }
+
+  getPendingRedemptions() {
+    const pending = [];
+
+    for (const [guildId, guild] of Object.entries(this.data.guilds)) {
+      for (const [userId, user] of Object.entries(guild.users)) {
+        for (const transaction of user.transactions) {
+          if (transaction.type === "redeem" && transaction.status === "pending") {
+            pending.push({ guildId, userId, transaction });
+          }
+        }
+      }
+    }
+
+    return pending;
+  }
+
   award(guildId, userId, amount, reason, actorId) {
     return this.addTransaction(guildId, userId, amount, reason, {
       actorId,
@@ -142,6 +172,7 @@ class SigilStore {
       `Redeemed ${entryCount} raffle ${entryCount === 1 ? "entry" : "entries"} for ${raffleName}`,
       {
         type: "redeem",
+        status: "pending",
         raffleId,
         raffleName,
         entryCount,

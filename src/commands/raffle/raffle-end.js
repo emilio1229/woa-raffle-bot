@@ -8,7 +8,7 @@ export default {
     .setDescription("Force-end the current ritual raffle."),
 
   async execute(interaction) {
-    const allRaffles = raffleStore.all().filter(r => !r.ended && Date.now() < r.endsAt);
+    const allRaffles = raffleStore.all().filter(r => !r.ended && !r.ending && Date.now() < r.endsAt);
 
     if (allRaffles.length === 0) {
       return interaction.reply({
@@ -51,6 +51,13 @@ async function executeRaffleEnd(interaction, raffle) {
   if (result.status === "missing") {
     return interaction.reply({
       content: "❌ That ritual is no longer active.",
+      ephemeral: true
+    });
+  }
+
+  if (result.status === "ending") {
+    return interaction.reply({
+      content: "🔮 The ritual is being finalized and will retry cleanup automatically if needed.",
       ephemeral: true
     });
   }

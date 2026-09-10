@@ -16,7 +16,11 @@ function normalizeRaffle(raffle) {
     ...raffle,
     entries: normalizedEntries,
     boundUsers: getManualBoundUsers(normalizedEntries),
-    ended: Boolean(raffle?.ended)
+    ended: Boolean(raffle?.ended),
+    ending: Boolean(raffle?.ending),
+    winnerId: typeof raffle?.winnerId === "string" ? raffle.winnerId : null,
+    buttonsCleared: Boolean(raffle?.buttonsCleared),
+    announcementSent: Boolean(raffle?.announcementSent)
   };
 }
 
@@ -74,12 +78,11 @@ class RaffleStore {
     }
   }
 
-  // Mark raffle as ended (without removing it)
-  markEnded(raffleId) {
+  markEnding(raffleId) {
     const raffle = this.getById(raffleId);
 
     if (raffle) {
-      raffle.ended = true;
+      raffle.ending = true;
       this.save(raffle);
     }
   }
@@ -118,7 +121,7 @@ class RaffleStore {
   // Get active raffle for a guild
   getActive(guildId) {
     return this.raffles.find(
-      raffle => raffle.guildId === guildId && !raffle.ended && Date.now() < raffle.endsAt
+      raffle => raffle.guildId === guildId && !raffle.ended && !raffle.ending && Date.now() < raffle.endsAt
     );
   }
 

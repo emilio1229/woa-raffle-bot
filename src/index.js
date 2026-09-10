@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 
 import { startAutoEndLoop } from "./autoEndmanager.js";
 import { handleInteraction } from "./interactionCreate.js";
+import { reconcilePendingRedemptions } from "./reconcileRedemptions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +42,8 @@ for (const filePath of commandFiles) {
   client.commands.set(command.data.name, command);
   console.log(`Loaded command: ${command.data.name}`);
 }
+
+reconcilePendingRedemptions();
 
 client.on(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user.tag}`);

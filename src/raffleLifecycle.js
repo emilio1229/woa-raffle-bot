@@ -11,20 +11,21 @@ const ASSET_PATH = path.join(__dirname, "..", "assets", "woa_winner_bg.png");
 
 async function clearRaffleButtons(client, raffle) {
   if (!raffle.channelId || !raffle.messageId) {
-    return;
+    return true;
   }
 
   const channel = await client.channels.fetch(raffle.channelId).catch(() => null);
   if (!channel) {
-    return;
+    return false;
   }
 
   const message = await channel.messages.fetch(raffle.messageId).catch(() => null);
   if (!message) {
-    return;
+    return true;
   }
 
   await message.edit({ components: [] });
+  return true;
 }
 
 async function sendRaffleAnnouncement(client, raffle, winnerId, entryCount) {
@@ -84,25 +85,54 @@ export async function concludeRaffle(client, raffleId) {
       return { status: "already-ended", raffle };
     }
 
-    raffleStore.markEnded(raffleId);
+    if (!raffle.ending) {
+      raffle.ending = true;
+      raffle.winnerId = pickWinnerId(raffle.entries ?? []);
+      raffle.buttonsCleared = false;
+      raffle.announcementSent = false;
+      raffleStore.save(raffle);
+    }
 
     const updated = raffleStore.getById(raffleId);
     const entries = updated?.entries ?? [];
-    const winnerId = pickWinnerId(entries);
+    const winnerId = updated?.winnerId ?? null;
     const entryCount = entries.length;
 
-    try {
-      await clearRaffleButtons(client, updated);
-    } catch (err) {
-      console.error("Failed to clear raffle buttons:", err);
+    if (!updated.buttonsCleared) {
+      try {
+        updated.buttonsCleared = await clearRaffleButtons(client, updated);
+        if (updated.buttonsCleared) {
+          raffleStore.save(updated);
+        }
+      } catch (err) {
+        console.error("Failed to clear raffle buttons:", err);
+      }
     }
 
-    let announced = false;
-    try {
-      announced = await sendRaffleAnnouncement(client, updated, winnerId, entryCount);
-    } catch (err) {
-      console.error("Failed to send raffle announcement:", err);
+    if (!updated.announcementSent) {
+      try {
+        updated.announcementSent = await sendRaffleAnnouncement(client, updated, winnerId, entryCount);
+        if (updated.announcementSent) {
+          raffleStore.save(updated);
+        }
+      } catch (err) {
+        console.error("Failed to send raffle announcement:", err);
+      }
     }
+
+    if (!updated.buttonsCleared || !updated.announcementSent) {
+      return {
+        status: "ending",
+        raffle: updated,
+        winnerId,
+        entryCount,
+        announced: updated.announcementSent
+      };
+    }
+
+    updated.ending = false;
+    updated.ended = true;
+    raffleStore.save(updated);
 
     raffleStore.end(raffleId);
 
@@ -111,7 +141,7 @@ export async function concludeRaffle(client, raffleId) {
       raffle: updated,
       winnerId,
       entryCount,
-      announced
+      announced: updated.announcementSent
     };
   });
 }
