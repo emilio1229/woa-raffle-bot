@@ -1,11 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { buildActiveRaffleEmbed } from "../embedBuilder.js";
+import { countEntriesForUser, createManualEntry, cloneEntries } from "../raffleEntries.js";
 import { withRaffleEntryLock } from "../raffleEntryLock.js";
 import { raffleStore } from "../raffleStore.js";
-
-function countEntriesForUser(entries, userId) {
-  return entries.filter(id => id === userId).length;
-}
 
 export async function handleBindSoul(interaction, raffleId) {
   return withRaffleEntryLock(raffleId, async () => {
@@ -28,11 +25,11 @@ export async function handleBindSoul(interaction, raffleId) {
       });
     }
 
-    const originalEntries = [...raffle.entries];
+    const originalEntries = cloneEntries(raffle.entries);
     const originalBoundUsers = [...raffle.boundUsers];
 
     raffle.boundUsers.push(userId);
-    raffle.entries.push(userId);
+    raffle.entries.push(createManualEntry(userId));
 
     try {
       const channel = await interaction.client.channels.fetch(raffle.channelId);

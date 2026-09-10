@@ -1,6 +1,8 @@
 // src/interactionCreate.js
-import { EmbedBuilder, AttachmentBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from "discord.js";
+import { EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from "discord.js";
 import { buildActiveRaffleEmbed } from "./embedBuilder.js";
+import { cloneEntries, createRedeemedEntries } from "./raffleEntries.js";
+import { concludeRaffle } from "./raffleLifecycle.js";
 import { withRaffleEntryLock } from "./raffleEntryLock.js";
 import { raffleStore } from "./raffleStore.js";
 import { sigilStore } from "./sigilStore.js";
@@ -101,12 +103,6 @@ export async function handleInteraction(interaction) {
       const raffleId = interaction.fields.getTextInputValue("sigil_raffle_id").trim();
       const entryCountRaw = interaction.fields.getTextInputValue("sigil_entry_count").trim();
       const entryCount = Number.parseInt(entryCountRaw, 10);
-      const raffle = raffleStore.getById(raffleId);
-
-      if (!raffle || raffle.guildId !== interaction.guild.id || raffle.ended || Date.now() >= raffle.endsAt) {
-        await interaction.editReply({ content: "❌ That raffle is not active right now." });
-        return;
-      }
 
       if (!Number.isInteger(entryCount) || entryCount <= 0) {
         await interaction.editReply({ content: "❌ Enter a valid positive number of raffle entries." });
@@ -114,8 +110,15 @@ export async function handleInteraction(interaction) {
       }
 
       try {
-        await withRaffleEntryLock(raffle.id, async () => {
-          const originalEntries = [...(raffle.entries ?? [])];
+        await withRaffleEntryLock(raffleId, async () => {
+          const raffle = raffleStore.getById(raffleId);
+
+          if (!raffle || raffle.guildId !== interaction.guild.id || raffle.ended || Date.now() >= raffle.endsAt) {
+            await interaction.editReply({ content: "❌ That raffle is not active right now." });
+            return;
+          }
+
+          const originalEntries = cloneEntries(raffle.entries ?? []);
           let redemption;
 
           try {
@@ -130,10 +133,10 @@ export async function handleInteraction(interaction) {
             throw err;
           }
 
-          raffle.entries = [...originalEntries];
-          for (let index = 0; index < entryCount; index += 1) {
-            raffle.entries.push(interaction.user.id);
-          }
+          raffle.entries = [
+            ...originalEntries,
+            ...createRedeemedEntries(interaction.user.id, entryCount, redemption.transaction.id)
+          ];
 
           try {
             const channel = await interaction.client.channels.fetch(raffle.channelId);
@@ -212,65 +215,16 @@ export async function handleInteraction(interaction) {
         } catch {}
 
         const selectedId = interaction.values[0];
-        const raffle = raffleStore.getById(selectedId);
 
-        if (!raffle) {
-          try {
+        try {
+          const result = await concludeRaffle(interaction.client, selectedId);
+
+          if (result.status === "missing") {
             await interaction.editReply({
               content: "Selected ritual not found.",
               components: []
             });
-          } catch {}
-          return;
-        }
-
-        try {
-          raffleStore.markEnded(raffle.id);
-          const updated = raffleStore.getById(raffle.id);
-          const entries = updated.entries ?? [];
-
-          let winnerId = null;
-          if (entries.length > 0) {
-            winnerId = entries[Math.floor(Math.random() * entries.length)];
-          }
-
-          try {
-            const channel = await interaction.client.channels.fetch(updated.channelId);
-            const msg = await channel.messages.fetch(updated.messageId);
-            await msg.edit({ components: [] });
-          } catch {}
-
-          if (winnerId) {
-            try {
-              const channel = await interaction.client.channels.fetch(updated.channelId);
-
-              const grandEmbed = new EmbedBuilder()
-                .setColor(0xFF4500)
-                .setTitle("✨ A Champion Has Been Chosen ✨")
-                .setDescription("The sigil storm erupts in violent cosmic fury.")
-                .addFields(
-                  { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
-                  { name: "📢 Ritual Role", value: updated.tagRole ? `<@&${updated.tagRole}>` : "None", inline: false },
-                  { name: "🎁 Prize", value: `**${updated.prize}**`, inline: false },
-                  { name: "💠 Sigils Bound", value: `${entries.length}`, inline: true }
-                )
-                .setImage("attachment://woa_winner_bg.png")
-                .setFooter({ text: "Wizards of Ark • Ascension Complete" })
-                .setTimestamp();
-
-              const attachment = new AttachmentBuilder("./assets/woa_winner_bg.png", { name: "woa_winner_bg.png" });
-
-              await channel.send({
-                embeds: [grandEmbed],
-                files: [attachment],
-                allowedMentions: {
-                  users: [winnerId],
-                  roles: updated.tagRole ? [updated.tagRole] : []
-                }
-              });
-            } catch (err) {
-              console.error("Grand announcement failed:", err);
-            }
+            return;
           }
 
           try {

@@ -1,18 +1,8 @@
 import { EmbedBuilder } from "discord.js";
 import { buildActiveRaffleEmbed } from "../embedBuilder.js";
+import { countEntriesForUser, removeManualEntry, cloneEntries } from "../raffleEntries.js";
 import { withRaffleEntryLock } from "../raffleEntryLock.js";
 import { raffleStore } from "../raffleStore.js";
-
-function removeSingleEntry(entries, userId) {
-  const index = entries.indexOf(userId);
-  if (index !== -1) {
-    entries.splice(index, 1);
-  }
-}
-
-function countEntriesForUser(entries, userId) {
-  return entries.filter(id => id === userId).length;
-}
 
 export async function handleUnbindSoul(interaction, raffleId) {
   return withRaffleEntryLock(raffleId, async () => {
@@ -35,11 +25,19 @@ export async function handleUnbindSoul(interaction, raffleId) {
       });
     }
 
-    const originalEntries = [...raffle.entries];
+    const originalEntries = cloneEntries(raffle.entries);
     const originalBoundUsers = [...raffle.boundUsers];
+    const removal = removeManualEntry(raffle.entries, userId);
+
+    if (!removal.removed) {
+      return interaction.reply({
+        content: "❌ Your manual sigil entry could not be located in this ritual.",
+        flags: 64
+      });
+    }
 
     raffle.boundUsers = raffle.boundUsers.filter(id => id !== userId);
-    removeSingleEntry(raffle.entries, userId);
+    raffle.entries = removal.entries;
 
     try {
       const channel = await interaction.client.channels.fetch(raffle.channelId);

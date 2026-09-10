@@ -1,114 +1,22 @@
 // src/autoEndmanager.js
-import { fileURLToPath } from "url";
-import path from "path";
+import { concludeRaffle } from "./raffleLifecycle.js";
 import { raffleStore } from "./raffleStore.js";
-import { EmbedBuilder, AttachmentBuilder } from "discord.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const ASSET_PATH = path.join(__dirname, "..", "assets", "woa_winner_bg.png");
 
 export function startAutoEndLoop(client) {
   setInterval(async () => {
     try {
-      const raffles = raffleStore.all();
+      const dueRaffles = raffleStore
+        .all()
+        .filter(raffle => !raffle.ended && Date.now() >= raffle.endsAt);
 
-      for (const raffle of raffles) {
-        if (Date.now() >= raffle.endsAt) {
-          console.log(`[autoEndManager] Ending raffle ${raffle.id} (guild=${raffle.guildId})`);
+      for (const raffle of dueRaffles) {
+        console.log(`[autoEndManager] Ending raffle ${raffle.id} (guild=${raffle.guildId})`);
+        const result = await concludeRaffle(client, raffle.id);
 
-          const entries = raffle.entries ?? [];
-          let winnerId = null;
-          if (entries.length > 0) {
-            winnerId = entries[Math.floor(Math.random() * entries.length)];
-            console.log(`[autoEndManager] Chosen winner: ${winnerId}`);
-          } else {
-            console.log(`[autoEndManager] No entries for raffle ${raffle.id}`);
-          }
-
-          // Remove buttons from original raffle message (keep embed as-is)
-          try {
-            if (raffle.channelId && raffle.messageId) {
-              const channel = await client.channels.fetch(raffle.channelId).catch(e => {
-                console.error(`[autoEndManager] failed to fetch channel ${raffle.channelId}:`, e);
-                return null;
-              });
-
-              if (channel) {
-                const msg = await channel.messages.fetch(raffle.messageId).catch(e => {
-                  console.warn(`[autoEndManager] could not fetch message ${raffle.messageId}:`, e);
-                  return null;
-                });
-
-                if (msg) {
-                  await msg.edit({ components: [] }).catch(e => {
-                    console.error("[autoEndManager] failed to remove buttons:", e);
-                  });
-                }
-              }
-            } else {
-              console.warn(`[autoEndManager] raffle ${raffle.id} missing channelId/messageId`);
-            }
-          } catch (err) {
-            console.error("autoEndManager button removal failed:", err);
-          }
-
-          // Send grand announcement (SEPARATE EMBED)
-          try {
-            const destChannel = await client.channels.fetch(raffle.channelId).catch(e => {
-              console.error(`[autoEndManager] failed to fetch channel for announcement ${raffle.channelId}:`, e);
-              return null;
-            });
-
-            if (!destChannel) {
-              console.warn("[autoEndManager] destination channel not available, skipping announcement.");
-            } else if (winnerId) {
-              const grandEmbed = new EmbedBuilder()
-                .setColor(0xFF4500)
-                .setTitle("✨ A Champion Has Been Chosen ✨")
-                .setDescription("The sigil storm erupts in violent cosmic fury.")
-                .addFields(
-                  { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
-                  { name: "📢 Ritual Role", value: raffle.tagRole ? `<@&${raffle.tagRole}>` : "None", inline: false },
-                  { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
-                  { name: "💠 Sigils Bound", value: `${entries.length}`, inline: true }
-                )
-                .setImage("attachment://woa_winner_bg.png")
-                .setFooter({ text: "Wizards of Ark • Ascension Complete" })
-                .setTimestamp();
-
-              const attachment = new AttachmentBuilder(ASSET_PATH, { name: "woa_winner_bg.png" });
-              await destChannel.send({
-                embeds: [grandEmbed],
-                files: [attachment],
-                allowedMentions: {
-                  users: [winnerId],
-                  roles: raffle.tagRole ? [raffle.tagRole] : []
-                }
-              });
-              console.log(`[autoEndManager] sent grand announcement for raffle ${raffle.id}`);
-            } else {
-              const noWinnerEmbed = new EmbedBuilder()
-                .setColor(0x2F4F4F)
-                .setTitle("Ritual Concluded — No Champion")
-                .setDescription("The ritual faded into the void; no winner could be chosen.")
-                .setFooter({ text: "Wizards of Ark" })
-                .setTimestamp();
-
-              await destChannel.send({ embeds: [noWinnerEmbed] });
-              console.log(`[autoEndManager] sent no-winner announcement for raffle ${raffle.id}`);
-            }
-          } catch (err) {
-            console.error("autoEndManager announcement (send) failed:", err);
-          }
-
-          // Finally remove the raffle from the store
-          try {
-            raffleStore.end(raffle.id);
-            console.log(`[autoEndManager] raffle ${raffle.id} removed from store`);
-          } catch (err) {
-            console.error("[autoEndManager] failed to remove raffle from store:", err);
-          }
+        if (result.status === "ended") {
+          console.log(
+            `[autoEndManager] raffle ${raffle.id} ended with ${result.entryCount} entries`
+          );
         }
       }
     } catch (err) {
