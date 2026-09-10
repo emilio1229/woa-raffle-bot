@@ -15,7 +15,7 @@ export async function handleBindSoul(interaction, raffleId) {
 
   if (raffle.entries.includes(userId)) {
     return interaction.reply({
-      content: "✨ Your soul is already bound to this ritual.",
+      content: "✨ Your essence is already offered to this ritual.",
       flags: 64
     });
   }
@@ -27,16 +27,16 @@ export async function handleBindSoul(interaction, raffleId) {
   const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
   const embed = new EmbedBuilder()
-    .setTitle(`${glowSymbol} Essence Convergence`)
+    .setTitle(`${glowSymbol} Sigil Offered`)
     .setDescription(
       [
-        `The ley‑threads shimmer as your essence enters the circle.`,
-        `A faint hum echoes — the ritual acknowledges your presence.`,
+        `Your essence merges with the ritual circle.`,
+        `The sigils flare as your offering is accepted.`,
         ``,
-        `🔮 **Arcane Binding Complete**`,
-        `🩸 **Souls Intertwined:** ${raffle.entries.length}`,
+        `💠 **Sigil Offered**`,
+        `🩸 **Total Sigils:** ${raffle.entries.length}`,
         ``,
-        `⟐ The sigils flare briefly, marking your arrival in the astral ledger.`
+        `⟐ The astral ledger marks your contribution.`
       ].join("\n")
     )
     .setColor(0x5A00A0)
@@ -65,7 +65,8 @@ export async function handleBindSoul(interaction, raffleId) {
           `**🩸 Bound Souls**`,
           `${raffle.entries.length}`
         ].join("\n")
-      );
+      )
+      .setImage("https://i.imgur.com/8fK4h7Z.png");
 
     await msg.edit({
       embeds: [updatedEmbed],
