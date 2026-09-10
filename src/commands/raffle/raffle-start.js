@@ -17,8 +17,8 @@ export default {
     .setDescription("Begin a new arcane ritual raffle.")
     .addStringOption(opt =>
       opt.setName("name")
-        .setDescription("Name of the ritual raffle")
-        .setRequired(true)
+        .setDescription("Name of the ritual raffle (optional)")
+        .setRequired(false)
     )
     .addStringOption(opt =>
       opt.setName("prize")
@@ -32,7 +32,6 @@ export default {
     ),
 
   async execute(interaction) {
-    const name = interaction.options.getString("name");
     const prize = interaction.options.getString("prize");
     const durationInput = interaction.options.getString("duration");
 
@@ -52,6 +51,24 @@ export default {
         flags: 64
       });
     }
+
+    // Random arcane names
+    const arcaneNames = [
+      "Veil of Whispered Sigils",
+      "Circle of Astral Binding",
+      "Rite of Shattered Stars",
+      "The Umbral Convergence",
+      "The Luminous Weave",
+      "The Eldritch Pulse",
+      "The Crystal Lattice",
+      "The Stormforged Rite",
+      "The Void-Touched Ritual",
+      "The Sigilbound Ceremony"
+    ];
+
+    // If user didn't provide a name → generate one
+    const providedName = interaction.options.getString("name");
+    const name = providedName || arcaneNames[Math.floor(Math.random() * arcaneNames.length)];
 
     // Role selection menu
     const roleRow = new ActionRowBuilder().addComponents(
@@ -79,8 +96,26 @@ export default {
 
       const tagRole = roleSelection.values[0];
 
-      // NEW — Arcane invocation text (no role mention)
-      const invocationText = "Ancient sigils awaken, humming softly in the astral dark.";
+      // Random arcane role-tag phrases
+      const arcaneRolePhrases = [
+        "Sigils Align With",
+        "Essence Called Forth",
+        "The Circle Attunes To",
+        "The Astral Veil Recognizes",
+        "Leylines Bend Toward",
+        "The Ritual Resonates With",
+        "The Glyphs Whisper Of",
+        "The Weave Acknowledges",
+        "The Ether Binds To",
+        "The Convergence Focuses Upon"
+      ];
+
+      const chosenRolePhrase =
+        arcaneRolePhrases[Math.floor(Math.random() * arcaneRolePhrases.length)];
+
+      // Arcane invocation text (no role mention)
+      const invocationText =
+        "Ancient sigils awaken, humming softly in the astral dark.";
 
       // Create raffle entry
       const raffle = raffleStore.create({
@@ -95,15 +130,16 @@ export default {
         entries: []
       });
 
-      // Ritual announcement
+      // TOP EMBED — TAGS THE ROLE
       const announcementEmbed = new EmbedBuilder()
-        .setTitle("🔮 THE RITUAL BEGINS 🔮")
+        .setTitle(`🔮 THE RITUAL BEGINS`)
         .setDescription(
           [
-            "The circle stirs as arcane energies gather.",
-            "A ritual has been cast — the astral veil thins.",
-            "",
+            `The circle stirs as arcane energies gather.`,
+            `A ritual has been cast — the astral veil thins.`,
+            ``,
             `⟐ **Ritual Name:** ${name}`,
+            `⟐ **${chosenRolePhrase}:** <@&${tagRole}>`,
             `🎁 **Offering:** ${prize}`
           ].join("\n")
         )
@@ -111,7 +147,7 @@ export default {
 
       await interaction.channel.send({ embeds: [announcementEmbed] });
 
-      // Raffle embed (new layout)
+      // MAIN RAFFLE EMBED — NO ROLE TAG
       const raffleEmbed = new EmbedBuilder()
         .setTitle(`🔮 ${name}`)
         .setColor(0x4B0082)
@@ -133,7 +169,6 @@ export default {
           ].join("\n")
         );
 
-      // Buttons
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("bindSoul")
