@@ -39,13 +39,26 @@ for (const filePath of commandFiles) {
 
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
-try {
-  console.log("Deploying slash commands…");
-  await rest.put(
-    Routes.applicationCommands(process.env.CLIENT_ID),
-    { body: commands }
-  );
-  console.log("Slash commands deployed.");
-} catch (error) {
-  console.error(error);
+async function deploy() {
+  try {
+    console.log("Deploying slash commands to BOTH guilds…");
+
+    // Testing Server
+    await rest.put(
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, "1498579289166188604"),
+      { body: commands }
+    );
+
+    // Main WOA Server
+    await rest.put(
+      Routes.applicationGuildCommands(process.env.CLIENT_ID, "1428105944373526610"),
+      { body: commands }
+    );
+
+    console.log("Slash commands deployed INSTANTLY to both servers.");
+  } catch (error) {
+    console.error(error);
+  }
 }
+
+deploy();
