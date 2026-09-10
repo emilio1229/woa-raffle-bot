@@ -81,16 +81,13 @@ async function executeRaffleEnd(interaction, raffle) {
     }
 
     if (winnerId) {
-      const winnerTag = `<@${winnerId}>`;
-      const roleTag = raffle.tagRole ? ` <@&${raffle.tagRole}>` : "";
-
       const grandEmbed = new EmbedBuilder()
         .setColor(0xFF4500)
         .setTitle("✨ A Champion Has Been Chosen ✨")
-        .setDescription(
-          `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}`
-        )
+        .setDescription("The sigil storm erupts in violent cosmic fury.")
         .addFields(
+          { name: "👑 Winner", value: `<@${winnerId}>`, inline: false },
+          { name: "📢 Ritual Role", value: raffle.tagRole ? `<@&${raffle.tagRole}>` : "None", inline: false },
           { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
           { name: "📜 Souls Bound", value: `${raffle.entries.length}`, inline: true }
         )
