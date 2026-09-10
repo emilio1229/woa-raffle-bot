@@ -17,7 +17,7 @@ export default {
     }
 
     // Mark ended
-    raffleStore.update(raffle.id, { ended: true });
+    raffleStore.markEnded(raffle.id);
 
     // Pick winner
     let winnerId = null;
@@ -37,8 +37,8 @@ export default {
           : `💀 The ritual found **no souls** to bind.\n\nNo winner was chosen.`
       )
       .addFields(
-        { name: "Prize", value: raffle.prize, inline: true },
-        { name: "Invocation", value: raffle.wizardPhrase },
+        { name: "Prize", value: raffle.prize || "Unknown", inline: true },
+        { name: "Invocation", value: raffle.wizardPhrase || "The sigils await...", inline: false },
         { name: "Bound Souls", value: `${raffle.entries.length}`, inline: true }
       )
       .setColor(0x4B0082);
@@ -58,19 +58,14 @@ export default {
       // Grand Winner Announcement (fancier)
       try {
         if (winnerId) {
-          const winners = [winnerId];
-          const winnerTag = winners.map(id => `<@${id}>`).join(', ');
-          const roleId = raffle.tagRole ?? raffle.roleId ?? null;
-          const roleMention = roleId ? `<@&${roleId}>` : null;
+          const winnerTag = `<@${winnerId}>`;
+          const roleTag = raffle.tagRole ? ` <@&${raffle.tagRole}>` : "";
 
           const grandEmbed = new EmbedBuilder()
             .setColor(0xFF4500)
             .setTitle(`✨ A Champion Has Been Chosen ✨`)
             .setDescription(
-              `The sigil storm erupts in violent cosmic fury.\n\n` +
-              `🔮 **Winner:** ${winnerTag}\n` +
-              (roleMention ? `🜂 **Ritual Role:** ${roleMention}\n` : '') +
-              `\nThe obelisk cracks open as destiny crowns its new bearer.`
+              `The sigil storm erupts in violent cosmic fury.\n\n🔮 **Winner:** ${winnerTag}${roleTag}\n\nThe obelisk cracks open as destiny crowns its new bearer.`
             )
             .setImage("attachment://woa_winner_bg.png")
             .setFooter({ text: "Wizards of Ark • Ascension Complete" })
@@ -79,16 +74,12 @@ export default {
           const attachment = new AttachmentBuilder("./assets/woa_winner_bg.png", { name: "woa_winner_bg.png" });
 
           await channel.send({
-            content: roleMention ? `${roleMention}` : undefined,
             embeds: [grandEmbed],
             files: [attachment],
-            allowedMentions: { roles: roleId ? [roleId] : [] }
+            allowedMentions: { roles: raffle.tagRole ? [raffle.tagRole] : [] }
           });
         } else {
           // No winner — send a consolation embed
-          const roleId = raffle.tagRole ?? raffle.roleId ?? null;
-          const roleMention = roleId ? `<@&${roleId}>` : null;
-
           const noWinnerEmbed = new EmbedBuilder()
             .setColor(0x2F4F4F)
             .setTitle(`Ritual Concluded — No Champion`)
@@ -97,9 +88,7 @@ export default {
             .setTimestamp();
 
           await channel.send({
-            content: roleMention ? `${roleMention}` : undefined,
-            embeds: [noWinnerEmbed],
-            allowedMentions: { roles: roleId ? [roleId] : [] }
+            embeds: [noWinnerEmbed]
           });
         }
       } catch (sendErr) {
