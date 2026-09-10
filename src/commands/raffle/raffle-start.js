@@ -3,25 +3,29 @@ import { raffleStore } from "../../raffleStore.js";
 import { buildActiveRaffleEmbed } from "../../embedBuilder.js";
 import { parseTime } from "../../utils/timeParser.js";
 
-export default {
-  data: new SlashCommandBuilder()
-    .setName("raffle-start")
-    .setDescription("Begin a new arcane ritual raffle.")
-    .addStringOption(opt =>
-      opt.setName("name")
-        .setDescription("Name of the ritual raffle (optional)")
-        .setRequired(false)
-    )
-    .addStringOption(opt =>
-      opt.setName("prize")
-        .setDescription("The offering for the ritual.")
-        .setRequired(true)
-    )
-    .addStringOption(opt =>
-      opt.setName("duration")
-        .setDescription("Duration (10m, 2h, tomorrow 5pm, etc.)")
-        .setRequired(true)
-    ),
+data: new SlashCommandBuilder()
+  .setName("raffle-start")
+  .setDescription("Begin a new arcane ritual raffle.")
+
+  // REQUIRED OPTIONS FIRST
+  .addStringOption(opt =>
+    opt.setName("prize")
+      .setDescription("The offering for the ritual.")
+      .setRequired(true)
+  )
+  .addStringOption(opt =>
+    opt.setName("duration")
+      .setDescription("Duration (10m, 2h, tomorrow 5pm, etc.)")
+      .setRequired(true)
+  )
+
+  // OPTIONAL OPTIONS LAST
+  .addStringOption(opt =>
+    opt.setName("name")
+      .setDescription("Name of the ritual raffle (optional)")
+      .setRequired(false)
+  ),
+
 
   async execute(interaction) {
     const prize = interaction.options.getString("prize");
