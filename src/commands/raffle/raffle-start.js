@@ -167,7 +167,7 @@ export default {
             `${raffle.entries.length}`
           ].join("\n")
         )
-        .setImage("https://i.imgur.com/8fK4h7Z.png"); // cosmic nebula background
+        .setImage("file:///C:/Users/Andres%20German/Pictures/ritual.png"); // cosmic nebula background
 
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
