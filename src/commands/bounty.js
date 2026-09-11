@@ -1,16 +1,32 @@
-import { SlashCommandBuilder, AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import {
+    SlashCommandBuilder,
+    AttachmentBuilder,
+    EmbedBuilder
+} from 'discord.js';
+
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Get absolute path to THIS file
+// Resolve __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Move UP from /src/commands/ to project root (/app)
+// Move from /src/commands/ → /app/
 const projectRoot = path.resolve(__dirname, '../../');
 
-// FINAL: absolute path to /app/assets/bounty.png
+// FINAL absolute path to bounty.png
 const bountyWeeklyImage = path.join(projectRoot, 'assets', 'bounty.png');
+
+// Dropdown stat choices
+const STAT_CHOICES = [
+    { name: 'Health', value: 'Health' },
+    { name: 'Stamina', value: 'Stamina' },
+    { name: 'Melee', value: 'Melee' },
+    { name: 'Weight', value: 'Weight' },
+    { name: 'Oxygen', value: 'Oxygen' },
+    { name: 'Food', value: 'Food' },
+    { name: 'Speed', value: 'Speed' }
+];
 
 export default {
     data: new SlashCommandBuilder()
@@ -18,24 +34,50 @@ export default {
         .setDescription('Start the weekly bounty posting wizard.')
         .addSubcommand(sub =>
             sub.setName('start')
-               .setDescription('Begin the weekly bounty posting wizard.')
-               .addStringOption(o => o.setName('dino1').setDescription('Dino 1 name').setRequired(true))
-               .addStringOption(o => o.setName('stat1').setDescription('Dino 1 stat').setRequired(true))
-               .addStringOption(o => o.setName('range1').setDescription('Dino 1 range').setRequired(true))
+                .setDescription('Begin the weekly bounty posting wizard.')
 
-               .addStringOption(o => o.setName('dino2').setDescription('Dino 2 name').setRequired(true))
-               .addStringOption(o => o.setName('stat2').setDescription('Dino 2 stat').setRequired(true))
-               .addStringOption(o => o.setName('range2').setDescription('Dino 2 range').setRequired(true))
+                // Dino 1
+                .addStringOption(o => o.setName('dino1').setDescription('Dino 1 name').setRequired(true))
+                .addStringOption(o =>
+                    o.setName('stat1')
+                        .setDescription('Dino 1 stat')
+                        .addChoices(...STAT_CHOICES)
+                        .setRequired(true)
+                )
+                .addStringOption(o => o.setName('range1').setDescription('Dino 1 range').setRequired(true))
 
-               .addStringOption(o => o.setName('dino3').setDescription('Dino 3 name').setRequired(true))
-               .addStringOption(o => o.setName('stat3').setDescription('Dino 3 stat').setRequired(true))
-               .addStringOption(o => o.setName('range3').setDescription('Dino 3 range').setRequired(true))
+                // Dino 2
+                .addStringOption(o => o.setName('dino2').setDescription('Dino 2 name').setRequired(true))
+                .addStringOption(o =>
+                    o.setName('stat2')
+                        .setDescription('Dino 2 stat')
+                        .addChoices(...STAT_CHOICES)
+                        .setRequired(true)
+                )
+                .addStringOption(o => o.setName('range2').setDescription('Dino 2 range').setRequired(true))
 
-               .addStringOption(o => o.setName('dino4').setDescription('Dino 4 name').setRequired(true))
-               .addStringOption(o => o.setName('stat4').setDescription('Dino 4 stat').setRequired(true))
-               .addStringOption(o => o.setName('range4').setDescription('Dino 4 range').setRequired(true))
+                // Dino 3
+                .addStringOption(o => o.setName('dino3').setDescription('Dino 3 name').setRequired(true))
+                .addStringOption(o =>
+                    o.setName('stat3')
+                        .setDescription('Dino 3 stat')
+                        .addChoices(...STAT_CHOICES)
+                        .setRequired(true)
+                )
+                .addStringOption(o => o.setName('range3').setDescription('Dino 3 range').setRequired(true))
 
-               .addStringOption(o => o.setName('bonus').setDescription('Bonus Offering description').setRequired(true))
+                // Dino 4
+                .addStringOption(o => o.setName('dino4').setDescription('Dino 4 name').setRequired(true))
+                .addStringOption(o =>
+                    o.setName('stat4')
+                        .setDescription('Dino 4 stat')
+                        .addChoices(...STAT_CHOICES)
+                        .setRequired(true)
+                )
+                .addStringOption(o => o.setName('range4').setDescription('Dino 4 range').setRequired(true))
+
+                // Bonus
+                .addStringOption(o => o.setName('bonus').setDescription('Bonus Offering description').setRequired(true))
         ),
 
     async execute(interaction) {
