@@ -2,12 +2,15 @@ import { SlashCommandBuilder, AttachmentBuilder, EmbedBuilder } from 'discord.js
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Fix __dirname in ESM
+// Get absolute path to project root
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Permanent bounty image from assets
-const bountyWeeklyImage = path.resolve('./assets/bounty.png');
+// Move UP from /src/commands/ to project root
+const projectRoot = path.resolve(__dirname, '../../');
+
+// FINAL: absolute path to /app/assets/bounty.png
+const bountyWeeklyImage = path.join(projectRoot, 'assets', 'bounty.png');
 
 export default {
     data: new SlashCommandBuilder()
