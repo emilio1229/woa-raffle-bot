@@ -78,7 +78,7 @@ export function buildRaffleEndedEmbed(raffle, entryCount, winnerId = null) {
         { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
         { name: "💠 Sigils Bound", value: `${entryCount} ${entryCount === 1 ? "sigil" : "sigils"}`, inline: true }
       )
-      .setFooter({ text: "Wizards of Ark • Ascension Complete" })
+      .setFooter({ text: "The Wizards of Ark • Ascension Complete" })
       .setTimestamp();
   }
 
@@ -90,6 +90,6 @@ export function buildRaffleEndedEmbed(raffle, entryCount, winnerId = null) {
       { name: "🎁 Prize", value: `**${raffle.prize}**`, inline: false },
       { name: "💠 Sigils Bound", value: `${entryCount} ${entryCount === 1 ? "sigil" : "sigils"}`, inline: true }
     )
-    .setFooter({ text: "Wizards of Ark" })
+    .setFooter({ text: "The Wizards of Ark" })
     .setTimestamp();
 }
