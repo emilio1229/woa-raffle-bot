@@ -9,9 +9,25 @@ class RaffleStore {
       console.log(`[RAFFLE DEBUG] ${msg}`);
     }
   }
+  cleanup() {
+    const before = this.raffles.length;
+
+    this.raffles = this.raffles.filter(r => {
+      const expiredByTime = Date.now() >= r.endsAt;
+      return !r.ended && !expiredByTime;
+    });
+
+    const after = this.raffles.length;
+
+    if (this.debugEnabled) {
+      console.log(`[RAFFLE DEBUG] Cleanup removed ${before - after} raffles`);
+    }
+  }
 
   // Create a new raffle
-  create(data) {
+   create(data) {
+    this.cleanup(); // auto-clean before creating new raffle
+
     const raffle = {
       id: Date.now().toString(),
       ended: false,
@@ -24,14 +40,18 @@ class RaffleStore {
     return raffle;
   }
 
+
   // Save updated raffle
-  save(updated) {
+   save(updated) {
     const index = this.raffles.findIndex(r => r.id === updated.id);
     if (index !== -1) {
       this.raffles[index] = updated;
       this.debug(`Saved raffle ${updated.id}`);
     }
+
+    this.cleanup(); // auto-clean after saving
   }
+
 
   // Mark raffle as ended (soft end)
   markEnded(raffleId) {
@@ -44,9 +64,10 @@ class RaffleStore {
   }
 
   // Hard delete raffle
-  end(raffleId) {
+    end(raffleId) {
     this.raffles = this.raffles.filter(r => r.id !== raffleId);
     this.debug(`Hard removed raffle ${raffleId}`);
+    this.cleanup(); // auto-clean after hard delete
   }
 
   // Return ALL raffles
