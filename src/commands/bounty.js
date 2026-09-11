@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Permanent bounty image from assets
-const bountyWeeklyImage = path.join(__dirname, '../../assets/bounty.png');
+const bountyWeeklyImage = path.join(__dirname, 'assets/bounty.png');
 
 export default {
     data: new SlashCommandBuilder()
