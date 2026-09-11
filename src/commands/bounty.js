@@ -1,7 +1,15 @@
-const bountyStore = require('../utils/bountyStore');
-const { AttachmentBuilder, EmbedBuilder, SlashCommandBuilder } = require('discord.js');
+import { SlashCommandBuilder, AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-module.exports = {
+// Fix __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Permanent bounty image from assets
+const bountyWeeklyImage = path.join(__dirname, '../../assets/bounty.png');
+
+export default {
     data: new SlashCommandBuilder()
         .setName('bounty')
         .setDescription('Start the weekly bounty posting wizard.')
@@ -47,7 +55,7 @@ module.exports = {
 
         const bonus = interaction.options.getString('bonus');
 
-        const bountyImage = new AttachmentBuilder(bountyStore.bountyWeeklyImage);
+        const bountyImage = new AttachmentBuilder(bountyWeeklyImage);
 
         const embed = new EmbedBuilder()
             .setColor('#2b2d31')
