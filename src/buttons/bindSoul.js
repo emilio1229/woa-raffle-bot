@@ -21,10 +21,9 @@ export async function handleBindSoul(interaction, raffleId) {
     raffle.boundUsers ??= [];
     raffle.entries ??= [];
 
-    // Already offered sigils
     if (raffle.boundUsers.includes(userId)) {
       return interaction.reply({
-        content: "✨ You have already **offered your sigils** to this ritual.",
+        content: "🔮 You have already joined this ritual.",
         flags: 64
       });
     }
@@ -32,7 +31,6 @@ export async function handleBindSoul(interaction, raffleId) {
     const originalEntries = [...raffle.entries];
     const originalBoundUsers = [...raffle.boundUsers];
 
-    // Offer sigils (enter)
     raffle.boundUsers.push(userId);
     raffle.entries.push(userId);
 
@@ -50,7 +48,7 @@ export async function handleBindSoul(interaction, raffleId) {
       raffle.boundUsers = originalBoundUsers;
 
       return interaction.reply({
-        content: "❌ The ritual could not be updated. Your sigils were **not** offered.",
+        content: "❌ The ritual could not be updated. You were not joined.",
         flags: 64
       });
     }
@@ -61,20 +59,20 @@ export async function handleBindSoul(interaction, raffleId) {
     const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
     const embed = new EmbedBuilder()
-      .setTitle(`${glowSymbol} Sigils Offered`)
+      .setTitle(`${glowSymbol} Ritual Joined`)
       .setDescription(
         [
-          `Your stored sigils surge into the ritual circle.`,
-          `The arcane ledger acknowledges your offering.`,
+          `You step into the ritual circle.`,
+          `Arcane energies acknowledge your presence.`,
           ``,
           `💠 **Your Total Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
-          `💠 **Total Sigils Offered:** ${raffle.entries.length}`,
+          `💠 **Total Participants:** ${raffle.entries.length}`,
           ``,
-          `⟐ The ritual deepens with your contribution.`
+          `⟐ The ritual deepens with your arrival.`
         ].join("\n")
       )
       .setColor(0x5A00A0)
-      .setFooter({ text: "The ritual deepens…" });
+      .setFooter({ text: "The ritual intensifies…" });
 
     return interaction.reply({
       embeds: [embed],
