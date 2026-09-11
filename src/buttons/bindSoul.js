@@ -10,7 +10,8 @@ function countEntriesForUser(entries, userId) {
 export async function handleBindSoul(interaction, raffleId) {
   return withRaffleEntryLock(raffleId, async () => {
     const raffle = raffleStore.getById(raffleId);
-    if (!raffle) {
+
+    if (!raffle || raffle.ended) {
       return interaction.reply({
         content: "❌ This ritual has already ended.",
         flags: 64
@@ -21,6 +22,7 @@ export async function handleBindSoul(interaction, raffleId) {
     raffle.boundUsers ??= [];
     raffle.entries ??= [];
 
+    // Prevent double join
     if (raffle.boundUsers.includes(userId)) {
       return interaction.reply({
         content: "🔮 You have already joined this ritual.",
@@ -28,12 +30,18 @@ export async function handleBindSoul(interaction, raffleId) {
       });
     }
 
+    // ⚠️ IMPORTANT: Respond immediately to avoid timeouts
+    await interaction.deferReply({ ephemeral: true });
+
+    // Save original state in case embed update fails
     const originalEntries = [...raffle.entries];
     const originalBoundUsers = [...raffle.boundUsers];
 
+    // Add user
     raffle.boundUsers.push(userId);
     raffle.entries.push(userId);
 
+    // Try updating the main raffle message
     try {
       const channel = await interaction.client.channels.fetch(raffle.channelId);
       const msg = await channel.messages.fetch(raffle.messageId);
@@ -44,17 +52,20 @@ export async function handleBindSoul(interaction, raffleId) {
         files: ["./assets/woa_ritual_bg.png"]
       });
     } catch (err) {
+      // Rollback if embed update fails
       raffle.entries = originalEntries;
       raffle.boundUsers = originalBoundUsers;
 
-      return interaction.reply({
+      return interaction.editReply({
         content: "❌ The ritual could not be updated. You were not joined.",
         flags: 64
       });
     }
 
+    // Save updated raffle
     raffleStore.save(raffle);
 
+    // Build the ephemeral confirmation embed
     const glow = ["🔮✨", "🔮💫", "🔮🌌", "🔮⚡"];
     const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
@@ -74,7 +85,7 @@ export async function handleBindSoul(interaction, raffleId) {
       .setColor(0x5A00A0)
       .setFooter({ text: "The ritual intensifies…" });
 
-    return interaction.reply({
+    return interaction.editReply({
       embeds: [embed],
       flags: 64
     });
