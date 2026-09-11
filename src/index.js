@@ -7,6 +7,9 @@ import { fileURLToPath } from "url";
 import { startAutoEndLoop } from "./autoEndmanager.js";
 import { handleInteraction } from "./interactionCreate.js";
 
+// ⭐ ADD THIS IMPORT
+import { startAstralSelection } from "./astralSelection.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -56,7 +59,11 @@ for (const filePath of commandFiles) {
 
 client.on(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user.tag}`);
+
   startAutoEndLoop(client);
+
+  // ⭐ START ASTRAL SELECTION HERE
+  startAstralSelection(client);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
