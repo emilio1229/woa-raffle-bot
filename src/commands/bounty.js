@@ -11,6 +11,7 @@ import {
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 // Resolve __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -21,6 +22,10 @@ const projectRoot = path.resolve(__dirname, '../../');
 
 // Correct path to /app/assets/bounty.png
 const bountyWeeklyImage = path.join(projectRoot, 'assets', 'bounty.png');
+
+// Debug logs
+console.log("Bounty image path:", bountyWeeklyImage);
+console.log("File exists:", fs.existsSync(bountyWeeklyImage));
 
 // Stat choices
 const STAT_CHOICES = [
@@ -42,7 +47,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('bounty')
         .setDescription('Start the weekly bounty posting wizard.')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) // ADMIN ONLY
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addSubcommand(sub =>
             sub.setName('start')
                 .setDescription('Begin the weekly bounty posting wizard.')
@@ -51,6 +56,13 @@ export default {
                 .addStringOption(o => o.setName('dino2').setDescription('Dino 2 name').setRequired(true))
                 .addStringOption(o => o.setName('dino3').setDescription('Dino 3 name').setRequired(true))
                 .addStringOption(o => o.setName('dino4').setDescription('Dino 4 name').setRequired(true))
+
+                // BONUS BOUNTY TEXT ONLY
+                .addStringOption(o =>
+                    o.setName('bonus')
+                        .setDescription('Bonus bounty description')
+                        .setRequired(false)
+                )
 
                 .addRoleOption(o =>
                     o.setName('tagrole')
@@ -61,7 +73,6 @@ export default {
 
     async execute(interaction) {
 
-        // ADMIN CHECK (extra safety)
         if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
             return interaction.reply({
                 content: '🛑 Only administrators may start the bounty wizard.',
@@ -74,9 +85,9 @@ export default {
         const d3 = interaction.options.getString('dino3');
         const d4 = interaction.options.getString('dino4');
 
+        const bonus = interaction.options.getString('bonus') || null;
         const tagRole = interaction.options.getRole('tagrole');
 
-        // Default stats (user can change via dropdown or random buttons)
         let stats = {
             d1: 'Melee',
             d2: 'Melee',
@@ -84,7 +95,6 @@ export default {
             d4: 'Melee'
         };
 
-        // Build stat dropdowns — each in its own row (Discord requires this)
         const statMenus = [
             new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
@@ -112,7 +122,6 @@ export default {
             )
         ];
 
-        // Buttons
         const buttons = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId('randomize_stats')
@@ -125,7 +134,6 @@ export default {
                 .setStyle(ButtonStyle.Success)
         );
 
-        // Initial panel (NO IMAGE HERE)
         const panelEmbed = new EmbedBuilder()
             .setColor('#2b2d31')
             .setTitle('🜁 Bounty Setup Panel 🜁')
@@ -136,6 +144,7 @@ export default {
                 `**Dino 2:** ${d2}\n` +
                 `**Dino 3:** ${d3}\n` +
                 `**Dino 4:** ${d4}\n\n` +
+                (bonus ? `⚡ Bonus Bounty: ${bonus}\n\n` : ``) +
                 `Tagging: <@&${tagRole.id}>`
             );
 
@@ -144,12 +153,12 @@ export default {
             components: [...statMenus, buttons]
         });
 
-        // Collector
         const collector = interaction.channel.createMessageComponentCollector({
-            time: 600000 // 10 minutes
+            time: 600000
         });
 
         collector.on('collect', async i => {
+
             if (i.customId === 'randomize_stats') {
                 stats.d1 = randomStat();
                 stats.d2 = randomStat();
@@ -167,6 +176,7 @@ export default {
                                 `**${d2}:** ${stats.d2}\n` +
                                 `**${d3}:** ${stats.d3}\n` +
                                 `**${d4}:** ${stats.d4}\n\n` +
+                                (bonus ? `⚡ Bonus Bounty: ${bonus}\n\n` : ``) +
                                 `Tagging: <@&${tagRole.id}>`
                             )
                     ],
@@ -189,6 +199,7 @@ export default {
                                 `**${d2}:** ${stats.d2}\n` +
                                 `**${d3}:** ${stats.d3}\n` +
                                 `**${d4}:** ${stats.d4}\n\n` +
+                                (bonus ? `⚡ Bonus Bounty: ${bonus}\n\n` : ``) +
                                 `Tagging: <@&${tagRole.id}>`
                             )
                     ],
@@ -197,11 +208,12 @@ export default {
             }
 
             if (i.customId === 'post_bounty') {
+
                 const bountyImage = new AttachmentBuilder(bountyWeeklyImage);
 
                 const embed = new EmbedBuilder()
                     .setColor('#2b2d31')
-                    .setImage('attachment://bounty.png') // IMAGE SHOWS HERE
+                    .setImage('attachment://bounty.png')
                     .setTitle('🜁 THE WEEKLY HUNT 🜁')
                     .setDescription(
                         `⚔️ **Targets of the Week**\n` +
@@ -209,13 +221,14 @@ export default {
                         `• ${d2} — ${stats.d2} ▸ 40–50\n` +
                         `• ${d3} — ${stats.d3} ▸ 40–50\n` +
                         `• ${d4} — ${stats.d4} ▸ 40–50\n\n` +
+                        (bonus ? `⚡ **Bonus Bounty:** ${bonus}\n\n` : ``) +
                         `🜁 **Summoned Order:** <@&${tagRole.id}>\n\n` +
                         `⚡ Present your offerings, Witchers.`
                     );
 
                 await i.update({
                     embeds: [embed],
-                    files: [bountyImage], // REQUIRED FOR IMAGE
+                    files: [bountyImage],
                     components: []
                 });
 
