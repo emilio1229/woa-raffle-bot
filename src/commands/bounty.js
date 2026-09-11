@@ -16,10 +16,10 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Move from /src/commands/ → /app/
+// Go from /src/commands → /src → /app
 const projectRoot = path.resolve(__dirname, '../../');
 
-// FINAL absolute path to bounty.png
+// Correct path to /app/assets/bounty.png
 const bountyWeeklyImage = path.join(projectRoot, 'assets', 'bounty.png');
 
 // Stat choices
@@ -125,7 +125,7 @@ export default {
                 .setStyle(ButtonStyle.Success)
         );
 
-        // Initial panel
+        // Initial panel (NO IMAGE HERE)
         const panelEmbed = new EmbedBuilder()
             .setColor('#2b2d31')
             .setTitle('🜁 Bounty Setup Panel 🜁')
@@ -201,7 +201,7 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor('#2b2d31')
-                    .setImage('attachment://bounty.png')
+                    .setImage('attachment://bounty.png') // IMAGE SHOWS HERE
                     .setTitle('🜁 THE WEEKLY HUNT 🜁')
                     .setDescription(
                         `⚔️ **Targets of the Week**\n` +
@@ -215,7 +215,7 @@ export default {
 
                 await i.update({
                     embeds: [embed],
-                    files: [bountyImage],
+                    files: [bountyImage], // REQUIRED FOR IMAGE
                     components: []
                 });
 
