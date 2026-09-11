@@ -5,7 +5,8 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    StringSelectMenuBuilder
+    StringSelectMenuBuilder,
+    PermissionFlagsBits
 } from 'discord.js';
 
 import path from 'path';
@@ -41,6 +42,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('bounty')
         .setDescription('Start the weekly bounty posting wizard.')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator) // ADMIN ONLY
         .addSubcommand(sub =>
             sub.setName('start')
                 .setDescription('Begin the weekly bounty posting wizard.')
@@ -49,13 +51,30 @@ export default {
                 .addStringOption(o => o.setName('dino2').setDescription('Dino 2 name').setRequired(true))
                 .addStringOption(o => o.setName('dino3').setDescription('Dino 3 name').setRequired(true))
                 .addStringOption(o => o.setName('dino4').setDescription('Dino 4 name').setRequired(true))
+
+                .addRoleOption(o =>
+                    o.setName('tagrole')
+                        .setDescription('Role to tag in the bounty post')
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
+
+        // ADMIN CHECK (extra safety)
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({
+                content: '🛑 Only administrators may start the bounty wizard.',
+                ephemeral: true
+            });
+        }
+
         const d1 = interaction.options.getString('dino1');
         const d2 = interaction.options.getString('dino2');
         const d3 = interaction.options.getString('dino3');
         const d4 = interaction.options.getString('dino4');
+
+        const tagRole = interaction.options.getRole('tagrole');
 
         // Default stats (user can change via dropdown or random buttons)
         let stats = {
@@ -108,7 +127,8 @@ export default {
                 `**Dino 1:** ${d1}\n` +
                 `**Dino 2:** ${d2}\n` +
                 `**Dino 3:** ${d3}\n` +
-                `**Dino 4:** ${d4}\n`
+                `**Dino 4:** ${d4}\n\n` +
+                `Tagging: <@&${tagRole.id}>`
             );
 
         await interaction.reply({
@@ -138,7 +158,8 @@ export default {
                                 `**${d1}:** ${stats.d1}\n` +
                                 `**${d2}:** ${stats.d2}\n` +
                                 `**${d3}:** ${stats.d3}\n` +
-                                `**${d4}:** ${stats.d4}\n`
+                                `**${d4}:** ${stats.d4}\n\n` +
+                                `Tagging: <@&${tagRole.id}>`
                             )
                     ],
                     components: [statMenus, buttons]
@@ -159,7 +180,8 @@ export default {
                                 `**${d1}:** ${stats.d1}\n` +
                                 `**${d2}:** ${stats.d2}\n` +
                                 `**${d3}:** ${stats.d3}\n` +
-                                `**${d4}:** ${stats.d4}\n`
+                                `**${d4}:** ${stats.d4}\n\n` +
+                                `Tagging: <@&${tagRole.id}>`
                             )
                     ],
                     components: [statMenus, buttons]
@@ -179,6 +201,7 @@ export default {
                         `• ${d2} — ${stats.d2} ▸ 40–50\n` +
                         `• ${d3} — ${stats.d3} ▸ 40–50\n` +
                         `• ${d4} — ${stats.d4} ▸ 40–50\n\n` +
+                        `🜁 **Summoned Order:** <@&${tagRole.id}>\n\n` +
                         `⚡ Present your offerings, Witchers.`
                     );
 
