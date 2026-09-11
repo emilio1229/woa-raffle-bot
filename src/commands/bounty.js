@@ -52,22 +52,38 @@ export default {
             sub.setName('start')
                 .setDescription('Begin the weekly bounty posting wizard.')
 
-                .addStringOption(o => o.setName('dino1').setDescription('Dino 1 name').setRequired(true))
-                .addStringOption(o => o.setName('dino2').setDescription('Dino 2 name').setRequired(true))
-                .addStringOption(o => o.setName('dino3').setDescription('Dino 3 name').setRequired(true))
-                .addStringOption(o => o.setName('dino4').setDescription('Dino 4 name').setRequired(true))
-
-                // BONUS BOUNTY TEXT ONLY
+                // REQUIRED OPTIONS FIRST
                 .addStringOption(o =>
-                    o.setName('bonus')
-                        .setDescription('Bonus bounty description')
-                        .setRequired(false)
+                    o.setName('dino1')
+                        .setDescription('Dino 1 name')
+                        .setRequired(true)
                 )
-
+                .addStringOption(o =>
+                    o.setName('dino2')
+                        .setDescription('Dino 2 name')
+                        .setRequired(true)
+                )
+                .addStringOption(o =>
+                    o.setName('dino3')
+                        .setDescription('Dino 3 name')
+                        .setRequired(true)
+                )
+                .addStringOption(o =>
+                    o.setName('dino4')
+                        .setDescription('Dino 4 name')
+                        .setRequired(true)
+                )
                 .addRoleOption(o =>
                     o.setName('tagrole')
                         .setDescription('Role to tag in the bounty post')
                         .setRequired(true)
+                )
+
+                // OPTIONAL BONUS LAST (fixes Discord error)
+                .addStringOption(o =>
+                    o.setName('bonus')
+                        .setDescription('Bonus bounty description')
+                        .setRequired(false)
                 )
         ),
 
