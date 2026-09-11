@@ -14,14 +14,15 @@ const COLORS = {
   ember: 0xC0392B
 };
 
+// -----------------------------
+// Admin Helpers
+// -----------------------------
 export function isAdmin(interaction) {
   return interaction.memberPermissions?.has(PermissionsBitField.Flags.Administrator) ?? false;
 }
 
 export async function requireAdmin(interaction) {
-  if (isAdmin(interaction)) {
-    return true;
-  }
+  if (isAdmin(interaction)) return true;
 
   await interaction.reply({
     content: "❌ Only server administrators may wield this sigil rite.",
@@ -30,6 +31,9 @@ export async function requireAdmin(interaction) {
   return false;
 }
 
+// -----------------------------
+// Formatting Helpers
+// -----------------------------
 export function formatSigilAmount(amount) {
   return `${amount > 0 ? "+" : ""}${amount}`;
 }
@@ -43,18 +47,41 @@ export function formatTransaction(tx) {
   ].join("");
 }
 
+// -----------------------------
+// /my-sigils Embed (NEW VERSION)
+// -----------------------------
 export function buildBalanceEmbed(user, balance, transactions, title, subtitle) {
+  const recent =
+    transactions.length > 0
+      ? transactions.map(formatTransaction).join("\n")
+      : "No movements echo through your sigil ledger.";
+
   return new EmbedBuilder()
     .setColor(COLORS.purple)
     .setTitle(title)
     .setDescription(subtitle)
     .addFields(
-      { name: "💠 Current Sigils", value: `${balance}`, inline: true },
       {
-        name: "📜 Recent Ledger Entries",
-        value: transactions.length > 0
-          ? transactions.map(formatTransaction).join("\n")
-          : "No sigil transactions recorded yet.",
+        name: "💠 Sigil Balance",
+        value: `You currently hold **${balance} sigils**.`,
+        inline: false
+      },
+      {
+        name: "📜 Ledger Echoes (last 10)",
+        value: recent,
+        inline: false
+      },
+      {
+        name: "🜂 Ledger Summary",
+        value: [
+          `• **Earned:** ${transactions
+            .filter(t => t.amount > 0)
+            .reduce((a, b) => a + b.amount, 0)}`,
+          `• **Spent / Removed:** ${transactions
+            .filter(t => t.amount < 0)
+            .reduce((a, b) => a + Math.abs(b.amount), 0)}`,
+          `• **Current Balance:** ${balance}`
+        ].join("\n"),
         inline: false
       }
     )
@@ -62,6 +89,9 @@ export function buildBalanceEmbed(user, balance, transactions, title, subtitle) 
     .setTimestamp();
 }
 
+// -----------------------------
+// Leaderboard Embed
+// -----------------------------
 export function buildLeaderboardEmbed(entries) {
   return new EmbedBuilder()
     .setColor(COLORS.gold)
@@ -75,6 +105,9 @@ export function buildLeaderboardEmbed(entries) {
     .setTimestamp();
 }
 
+// -----------------------------
+// Admin Panel Embed
+// -----------------------------
 export function buildAdminPanelEmbed(stats, activeRaffles) {
   return new EmbedBuilder()
     .setColor(COLORS.green)
@@ -103,6 +136,9 @@ export function buildAdminPanelEmbed(stats, activeRaffles) {
     .setTimestamp();
 }
 
+// -----------------------------
+// Sigil Shop Embed
+// -----------------------------
 export function buildShopEmbed(activeRaffles, balance) {
   return new EmbedBuilder()
     .setColor(COLORS.gold)
@@ -127,6 +163,9 @@ export function buildShopEmbed(activeRaffles, balance) {
     .setTimestamp();
 }
 
+// -----------------------------
+// Shop Components
+// -----------------------------
 export function buildShopComponents(disabled = false) {
   return [
     new ActionRowBuilder().addComponents(
@@ -139,6 +178,9 @@ export function buildShopComponents(disabled = false) {
   ];
 }
 
+// -----------------------------
+// Redeem Success Embed
+// -----------------------------
 export function buildRedeemSuccessEmbed(raffle, entryCount, sigilCost, balance) {
   return new EmbedBuilder()
     .setColor(COLORS.green)
