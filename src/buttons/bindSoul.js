@@ -21,9 +21,10 @@ export async function handleBindSoul(interaction, raffleId) {
     raffle.boundUsers ??= [];
     raffle.entries ??= [];
 
+    // Already offered sigils
     if (raffle.boundUsers.includes(userId)) {
       return interaction.reply({
-        content: "✨ Your essence is already offered to this ritual.",
+        content: "✨ You have already **offered your sigils** to this ritual.",
         flags: 64
       });
     }
@@ -31,6 +32,7 @@ export async function handleBindSoul(interaction, raffleId) {
     const originalEntries = [...raffle.entries];
     const originalBoundUsers = [...raffle.boundUsers];
 
+    // Offer sigils (enter)
     raffle.boundUsers.push(userId);
     raffle.entries.push(userId);
 
@@ -48,7 +50,7 @@ export async function handleBindSoul(interaction, raffleId) {
       raffle.boundUsers = originalBoundUsers;
 
       return interaction.reply({
-        content: "❌ The ritual could not be updated. Your sigil was not added.",
+        content: "❌ The ritual could not be updated. Your sigils were **not** offered.",
         flags: 64
       });
     }
@@ -59,16 +61,16 @@ export async function handleBindSoul(interaction, raffleId) {
     const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
     const embed = new EmbedBuilder()
-      .setTitle(`${glowSymbol} Sigil Offered`)
+      .setTitle(`${glowSymbol} Sigils Offered`)
       .setDescription(
         [
-          `Your essence merges with the ritual circle.`,
-          `The sigils flare as your offering is accepted.`,
+          `Your stored sigils surge into the ritual circle.`,
+          `The arcane ledger acknowledges your offering.`,
           ``,
           `💠 **Your Total Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
-          `💠 **Total Sigils Bound:** ${raffle.entries.length}`,
+          `💠 **Total Sigils Offered:** ${raffle.entries.length}`,
           ``,
-          `⟐ The astral ledger marks your contribution.`
+          `⟐ The ritual deepens with your contribution.`
         ].join("\n")
       )
       .setColor(0x5A00A0)
