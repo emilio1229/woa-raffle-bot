@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import sigilStore from '../../sigilStore.js'; // adjust if your path differs
+import { sigilStore } from '../../sigilStore.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
