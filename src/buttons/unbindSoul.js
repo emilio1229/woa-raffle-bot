@@ -28,10 +28,9 @@ export async function handleUnbindSoul(interaction, raffleId) {
     raffle.boundUsers ??= [];
     raffle.entries ??= [];
 
-    // No sigils offered to withdraw
     if (!raffle.boundUsers.includes(userId)) {
       return interaction.reply({
-        content: "✨ You have no offered sigils to withdraw from this ritual.",
+        content: "⚫ You are not part of this ritual.",
         flags: 64
       });
     }
@@ -39,7 +38,6 @@ export async function handleUnbindSoul(interaction, raffleId) {
     const originalEntries = [...raffle.entries];
     const originalBoundUsers = [...raffle.boundUsers];
 
-    // Withdraw sigil (remove one entry)
     raffle.boundUsers = raffle.boundUsers.filter(id => id !== userId);
     removeSingleEntry(raffle.entries, userId);
 
@@ -57,31 +55,31 @@ export async function handleUnbindSoul(interaction, raffleId) {
       raffle.boundUsers = originalBoundUsers;
 
       return interaction.reply({
-        content: "❌ The ritual could not be updated. Your sigil was not withdrawn.",
+        content: "❌ The ritual could not be updated. You remain within the circle.",
         flags: 64
       });
     }
 
     raffleStore.save(raffle);
 
-    const glow = ["🜂🌑", "🜂🕯️", "🜂🌫️", "🜂⚫"];
+    const glow = ["⚫🌑", "⚫🕯️", "⚫🌫️", "⚫🜂"];
     const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
     const embed = new EmbedBuilder()
-      .setTitle(`${glowSymbol} Sigil Withdrawn`)
+      .setTitle(`${glowSymbol} Ritual Left`)
       .setDescription(
         [
-          `Your sigil drifts away from the ritual circle.`,
-          `The arcane ledger adjusts as your offering fades.`,
+          `You step away from the ritual circle.`,
+          `The energies dim as your presence fades.`,
           ``,
           `🜂 **Your Remaining Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
-          `💠 **Total Sigils Offered:** ${raffle.entries.length}`,
+          `💠 **Total Participants:** ${raffle.entries.length}`,
           ``,
           `⟐ The ritual shifts with your departure.`
         ].join("\n")
       )
       .setColor(0x2E003E)
-      .setFooter({ text: "The ritual shifts…" });
+      .setFooter({ text: "The ritual calms…" });
 
     return interaction.reply({
       embeds: [embed],
