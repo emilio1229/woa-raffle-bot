@@ -1,7 +1,11 @@
 import {
     SlashCommandBuilder,
     AttachmentBuilder,
-    EmbedBuilder
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    StringSelectMenuBuilder
 } from 'discord.js';
 
 import path from 'path';
@@ -17,16 +21,21 @@ const projectRoot = path.resolve(__dirname, '../../');
 // FINAL absolute path to bounty.png
 const bountyWeeklyImage = path.join(projectRoot, 'assets', 'bounty.png');
 
-// Dropdown stat choices
+// Stat choices
 const STAT_CHOICES = [
-    { name: 'Health', value: 'Health' },
-    { name: 'Stamina', value: 'Stamina' },
-    { name: 'Melee', value: 'Melee' },
-    { name: 'Weight', value: 'Weight' },
-    { name: 'Oxygen', value: 'Oxygen' },
-    { name: 'Food', value: 'Food' },
-    { name: 'Speed', value: 'Speed' }
+    { label: 'Health', value: 'Health' },
+    { label: 'Stamina', value: 'Stamina' },
+    { label: 'Melee', value: 'Melee' },
+    { label: 'Weight', value: 'Weight' },
+    { label: 'Oxygen', value: 'Oxygen' },
+    { label: 'Food', value: 'Food' },
+    { label: 'Speed', value: 'Speed' }
 ];
+
+// Helper: random stat
+function randomStat() {
+    return STAT_CHOICES[Math.floor(Math.random() * STAT_CHOICES.length)].value;
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -36,90 +45,151 @@ export default {
             sub.setName('start')
                 .setDescription('Begin the weekly bounty posting wizard.')
 
-                // Dino 1
                 .addStringOption(o => o.setName('dino1').setDescription('Dino 1 name').setRequired(true))
-                .addStringOption(o =>
-                    o.setName('stat1')
-                        .setDescription('Dino 1 stat')
-                        .addChoices(...STAT_CHOICES)
-                        .setRequired(true)
-                )
-                .addStringOption(o => o.setName('range1').setDescription('Dino 1 range').setRequired(true))
-
-                // Dino 2
                 .addStringOption(o => o.setName('dino2').setDescription('Dino 2 name').setRequired(true))
-                .addStringOption(o =>
-                    o.setName('stat2')
-                        .setDescription('Dino 2 stat')
-                        .addChoices(...STAT_CHOICES)
-                        .setRequired(true)
-                )
-                .addStringOption(o => o.setName('range2').setDescription('Dino 2 range').setRequired(true))
-
-                // Dino 3
                 .addStringOption(o => o.setName('dino3').setDescription('Dino 3 name').setRequired(true))
-                .addStringOption(o =>
-                    o.setName('stat3')
-                        .setDescription('Dino 3 stat')
-                        .addChoices(...STAT_CHOICES)
-                        .setRequired(true)
-                )
-                .addStringOption(o => o.setName('range3').setDescription('Dino 3 range').setRequired(true))
-
-                // Dino 4
                 .addStringOption(o => o.setName('dino4').setDescription('Dino 4 name').setRequired(true))
-                .addStringOption(o =>
-                    o.setName('stat4')
-                        .setDescription('Dino 4 stat')
-                        .addChoices(...STAT_CHOICES)
-                        .setRequired(true)
-                )
-                .addStringOption(o => o.setName('range4').setDescription('Dino 4 range').setRequired(true))
-
-                // Bonus
-                .addStringOption(o => o.setName('bonus').setDescription('Bonus Offering description').setRequired(true))
         ),
 
     async execute(interaction) {
-
         const d1 = interaction.options.getString('dino1');
-        const s1 = interaction.options.getString('stat1');
-        const r1 = interaction.options.getString('range1');
-
         const d2 = interaction.options.getString('dino2');
-        const s2 = interaction.options.getString('stat2');
-        const r2 = interaction.options.getString('range2');
-
         const d3 = interaction.options.getString('dino3');
-        const s3 = interaction.options.getString('stat3');
-        const r3 = interaction.options.getString('range3');
-
         const d4 = interaction.options.getString('dino4');
-        const s4 = interaction.options.getString('stat4');
-        const r4 = interaction.options.getString('range4');
 
-        const bonus = interaction.options.getString('bonus');
+        // Default stats (user can change via dropdown or random buttons)
+        let stats = {
+            d1: 'Melee',
+            d2: 'Melee',
+            d3: 'Melee',
+            d4: 'Melee'
+        };
 
-        const bountyImage = new AttachmentBuilder(bountyWeeklyImage);
+        // Build stat dropdowns
+        const statMenus = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId('stat_d1')
+                .setPlaceholder('Select stat for Dino 1')
+                .addOptions(STAT_CHOICES),
+            new StringSelectMenuBuilder()
+                .setCustomId('stat_d2')
+                .setPlaceholder('Select stat for Dino 2')
+                .addOptions(STAT_CHOICES),
+            new StringSelectMenuBuilder()
+                .setCustomId('stat_d3')
+                .setPlaceholder('Select stat for Dino 3')
+                .addOptions(STAT_CHOICES),
+            new StringSelectMenuBuilder()
+                .setCustomId('stat_d4')
+                .setPlaceholder('Select stat for Dino 4')
+                .addOptions(STAT_CHOICES)
+        );
 
-        const embed = new EmbedBuilder()
+        // Buttons
+        const buttons = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId('randomize_stats')
+                .setLabel('Randomize All Stats')
+                .setStyle(ButtonStyle.Primary),
+
+            new ButtonBuilder()
+                .setCustomId('post_bounty')
+                .setLabel('Post Bounty')
+                .setStyle(ButtonStyle.Success)
+        );
+
+        // Initial panel
+        const panelEmbed = new EmbedBuilder()
             .setColor('#2b2d31')
-            .setImage('attachment://bounty.png')
-            .setTitle('🜁 THE WEEKLY HUNT 🜁')
+            .setTitle('🜁 Bounty Setup Panel 🜁')
             .setDescription(
-                `⚔️ **Targets of the Week**\n` +
-                `• ${d1} — ${s1} ▸ ${r1}\n` +
-                `• ${d2} — ${s2} ▸ ${r2}\n` +
-                `• ${d3} — ${s3} ▸ ${r3}\n` +
-                `• ${d4} — ${s4} ▸ ${r4}\n\n` +
-                `🜂 **Bonus Offering**\n` +
-                `${bonus}\n\n` +
-                `⚡ Present your offerings, Witchers.`
+                `Set stats for each dino or randomize them.\n` +
+                `Range is automatically **40–50**.\n\n` +
+                `**Dino 1:** ${d1}\n` +
+                `**Dino 2:** ${d2}\n` +
+                `**Dino 3:** ${d3}\n` +
+                `**Dino 4:** ${d4}\n`
             );
 
         await interaction.reply({
-            embeds: [embed],
-            files: [bountyImage]
+            embeds: [panelEmbed],
+            components: [statMenus, buttons]
+        });
+
+        // Collector
+        const collector = interaction.channel.createMessageComponentCollector({
+            time: 600000 // 10 minutes
+        });
+
+        collector.on('collect', async i => {
+            if (i.customId === 'randomize_stats') {
+                stats.d1 = randomStat();
+                stats.d2 = randomStat();
+                stats.d3 = randomStat();
+                stats.d4 = randomStat();
+
+                await i.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#2b2d31')
+                            .setTitle('🜁 Bounty Setup Panel 🜁')
+                            .setDescription(
+                                `Stats randomized.\nRange is **40–50**.\n\n` +
+                                `**${d1}:** ${stats.d1}\n` +
+                                `**${d2}:** ${stats.d2}\n` +
+                                `**${d3}:** ${stats.d3}\n` +
+                                `**${d4}:** ${stats.d4}\n`
+                            )
+                    ],
+                    components: [statMenus, buttons]
+                });
+            }
+
+            if (i.customId.startsWith('stat_')) {
+                const dinoKey = i.customId.split('_')[1];
+                stats[dinoKey] = i.values[0];
+
+                await i.update({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor('#2b2d31')
+                            .setTitle('🜁 Bounty Setup Panel 🜁')
+                            .setDescription(
+                                `Stats updated.\nRange is **40–50**.\n\n` +
+                                `**${d1}:** ${stats.d1}\n` +
+                                `**${d2}:** ${stats.d2}\n` +
+                                `**${d3}:** ${stats.d3}\n` +
+                                `**${d4}:** ${stats.d4}\n`
+                            )
+                    ],
+                    components: [statMenus, buttons]
+                });
+            }
+
+            if (i.customId === 'post_bounty') {
+                const bountyImage = new AttachmentBuilder(bountyWeeklyImage);
+
+                const embed = new EmbedBuilder()
+                    .setColor('#2b2d31')
+                    .setImage('attachment://bounty.png')
+                    .setTitle('🜁 THE WEEKLY HUNT 🜁')
+                    .setDescription(
+                        `⚔️ **Targets of the Week**\n` +
+                        `• ${d1} — ${stats.d1} ▸ 40–50\n` +
+                        `• ${d2} — ${stats.d2} ▸ 40–50\n` +
+                        `• ${d3} — ${stats.d3} ▸ 40–50\n` +
+                        `• ${d4} — ${stats.d4} ▸ 40–50\n\n` +
+                        `⚡ Present your offerings, Witchers.`
+                    );
+
+                await i.update({
+                    embeds: [embed],
+                    files: [bountyImage],
+                    components: []
+                });
+
+                collector.stop();
+            }
         });
     }
 };
