@@ -84,25 +84,33 @@ export default {
             d4: 'Melee'
         };
 
-        // Build stat dropdowns
-        const statMenus = new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-                .setCustomId('stat_d1')
-                .setPlaceholder('Select stat for Dino 1')
-                .addOptions(STAT_CHOICES),
-            new StringSelectMenuBuilder()
-                .setCustomId('stat_d2')
-                .setPlaceholder('Select stat for Dino 2')
-                .addOptions(STAT_CHOICES),
-            new StringSelectMenuBuilder()
-                .setCustomId('stat_d3')
-                .setPlaceholder('Select stat for Dino 3')
-                .addOptions(STAT_CHOICES),
-            new StringSelectMenuBuilder()
-                .setCustomId('stat_d4')
-                .setPlaceholder('Select stat for Dino 4')
-                .addOptions(STAT_CHOICES)
-        );
+        // Build stat dropdowns — each in its own row (Discord requires this)
+        const statMenus = [
+            new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId('stat_d1')
+                    .setPlaceholder('Select stat for Dino 1')
+                    .addOptions(STAT_CHOICES)
+            ),
+            new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId('stat_d2')
+                    .setPlaceholder('Select stat for Dino 2')
+                    .addOptions(STAT_CHOICES)
+            ),
+            new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId('stat_d3')
+                    .setPlaceholder('Select stat for Dino 3')
+                    .addOptions(STAT_CHOICES)
+            ),
+            new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId('stat_d4')
+                    .setPlaceholder('Select stat for Dino 4')
+                    .addOptions(STAT_CHOICES)
+            )
+        ];
 
         // Buttons
         const buttons = new ActionRowBuilder().addComponents(
@@ -133,7 +141,7 @@ export default {
 
         await interaction.reply({
             embeds: [panelEmbed],
-            components: [statMenus, buttons]
+            components: [...statMenus, buttons]
         });
 
         // Collector
@@ -162,7 +170,7 @@ export default {
                                 `Tagging: <@&${tagRole.id}>`
                             )
                     ],
-                    components: [statMenus, buttons]
+                    components: [...statMenus, buttons]
                 });
             }
 
@@ -184,7 +192,7 @@ export default {
                                 `Tagging: <@&${tagRole.id}>`
                             )
                     ],
-                    components: [statMenus, buttons]
+                    components: [...statMenus, buttons]
                 });
             }
 
