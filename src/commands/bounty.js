@@ -35,7 +35,6 @@ const STAT_CHOICES = [
     { label: 'Weight', value: 'Weight' },
     { label: 'Oxygen', value: 'Oxygen' },
     { label: 'Food', value: 'Food' },
-    { label: 'Speed', value: 'Speed' }
 ];
 
 // Helper: random stat
