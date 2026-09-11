@@ -27,13 +27,20 @@ export async function execute(interaction) {
         ``,
         `**Active Raffle:**`,
         active
-          ? `• ID: ${active.id}\n• Ends At: ${new Date(active.endsAt).toLocaleString()}\n• Ended Flag: ${active.ended}\n• Entries: ${active.entries?.length ?? 0}`
+          ? [
+              `• ID: ${active.id}`,
+              `• Ends At: ${new Date(active.endsAt).toLocaleString()}`,
+              `• Ended Flag: ${active.ended}`,
+              `• Entries: ${active.entries?.length ?? 0}`
+            ].join("\n")
           : "• None",
         ``,
         `**Total Raffles Stored:** ${all.length}`,
         ``,
         `**IDs:**`,
-        all.map(r => `• ${r.id} (ended: ${r.ended})`).join("\n") || "None",
+        all.length > 0
+          ? all.map(r => `• ${r.id} (ended: ${r.ended})`).join("\n")
+          : "None",
         ``,
         `⟐ Debug complete.`
       ].join("\n")
@@ -43,4 +50,4 @@ export async function execute(interaction) {
     embeds: [embed],
     ephemeral: true
   });
-} 
+}
