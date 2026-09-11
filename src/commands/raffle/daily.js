@@ -45,12 +45,12 @@ export default {
             });
         }
 
-        // Award +1 sigil
-        sigilStore.awardSigils(guildId, userId, 1, 'Daily reward');
+        // Award +1 sigil (correct function)
+        sigilStore.award(guildId, userId, 1, 'Daily reward');
 
         // Update timestamp
         userData.lastDaily = now;
-        sigilStore.save();
+        sigilStore.persist();
 
         const successEmbed = new EmbedBuilder()
             .setColor('#55ff55')
