@@ -28,9 +28,10 @@ export async function handleUnbindSoul(interaction, raffleId) {
     raffle.boundUsers ??= [];
     raffle.entries ??= [];
 
+    // No sigils offered to withdraw
     if (!raffle.boundUsers.includes(userId)) {
       return interaction.reply({
-        content: "✨ You have no manually offered sigil to reclaim from this ritual.",
+        content: "✨ You have no offered sigils to withdraw from this ritual.",
         flags: 64
       });
     }
@@ -38,6 +39,7 @@ export async function handleUnbindSoul(interaction, raffleId) {
     const originalEntries = [...raffle.entries];
     const originalBoundUsers = [...raffle.boundUsers];
 
+    // Withdraw sigil (remove one entry)
     raffle.boundUsers = raffle.boundUsers.filter(id => id !== userId);
     removeSingleEntry(raffle.entries, userId);
 
@@ -55,7 +57,7 @@ export async function handleUnbindSoul(interaction, raffleId) {
       raffle.boundUsers = originalBoundUsers;
 
       return interaction.reply({
-        content: "❌ The ritual could not be updated. Your sigil was not reclaimed.",
+        content: "❌ The ritual could not be updated. Your sigil was not withdrawn.",
         flags: 64
       });
     }
@@ -66,16 +68,16 @@ export async function handleUnbindSoul(interaction, raffleId) {
     const glowSymbol = glow[Math.floor(Math.random() * glow.length)];
 
     const embed = new EmbedBuilder()
-      .setTitle(`${glowSymbol} Sigil Reclaimed`)
+      .setTitle(`${glowSymbol} Sigil Withdrawn`)
       .setDescription(
         [
-          `Your essence withdraws from the ritual circle.`,
-          `The sigils dim as your offering fades.`,
+          `Your sigil drifts away from the ritual circle.`,
+          `The arcane ledger adjusts as your offering fades.`,
           ``,
           `🜂 **Your Remaining Entries:** ${countEntriesForUser(raffle.entries, userId)}`,
-          `💠 **Total Sigils Bound:** ${raffle.entries.length}`,
+          `💠 **Total Sigils Offered:** ${raffle.entries.length}`,
           ``,
-          `⟐ The astral ledger adjusts to your departure.`
+          `⟐ The ritual shifts with your departure.`
         ].join("\n")
       )
       .setColor(0x2E003E)
