@@ -1,5 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
-import sigilStore from './sigilStore.js';
+import { sigilStore } from './sigilStore.js';
+
 
 const INTERVAL_HOURS = 6; // change this to whatever you want
 const INTERVAL_MS = INTERVAL_HOURS * 60 * 60 * 1000;
