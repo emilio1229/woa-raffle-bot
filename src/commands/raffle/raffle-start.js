@@ -82,7 +82,7 @@ export default {
     );
 
     await interaction.reply({
-      content: "Choose the role whose essence will be invoked:",
+      content: "Choose the role whose essence will be Chosen.:",
       components: [roleRow]
     });
 
@@ -151,12 +151,12 @@ export default {
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("bindSoul")
-          .setLabel("💠 Offer Sigil")
+          .setLabel("🔮 Join Ritual")
           .setStyle(ButtonStyle.Primary),
 
         new ButtonBuilder()
           .setCustomId("unbindSoul")
-          .setLabel("🜂 Reclaim Sigil")
+          .setLabel("⚫ Leave Ritual")
           .setStyle(ButtonStyle.Secondary)
       );
 
