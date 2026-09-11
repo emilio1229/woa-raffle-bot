@@ -1,4 +1,4 @@
-﻿// src/components.js
+// src/components.js
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -10,14 +10,12 @@ export function buildRaffleButtons(raffleId) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`enter_${raffleId}`)
-      .setLabel("Bind Soul")
-      .setEmoji("🪄")
+      .setLabel("🔮 Join Ritual")
       .setStyle(ButtonStyle.Success),
 
     new ButtonBuilder()
       .setCustomId(`leave_${raffleId}`)
-      .setLabel("Unbind Soul")
-      .setEmoji("💀")
+      .setLabel("⚫ Leave Ritual")
       .setStyle(ButtonStyle.Danger)
   );
 }
