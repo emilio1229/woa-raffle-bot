@@ -2,11 +2,11 @@ import { SlashCommandBuilder, AttachmentBuilder, EmbedBuilder } from 'discord.js
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Get absolute path to project root
+// Get absolute path to THIS file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Move UP from /src/commands/ to project root
+// Move UP from /src/commands/ to project root (/app)
 const projectRoot = path.resolve(__dirname, '../../');
 
 // FINAL: absolute path to /app/assets/bounty.png
