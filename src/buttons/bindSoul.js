@@ -12,26 +12,57 @@ export async function handleBindSoul(interaction, raffleId) {
     const raffle = raffleStore.getById(raffleId);
 
     if (!raffle || raffle.ended) {
-      return interaction.reply({
-        content: "❌ This ritual has already ended.",
-        flags: 64
-      });
+      try {
+        return await interaction.reply({
+          content: "❌ This ritual has already ended.",
+          flags: 64
+        });
+      } catch (err) {
+        if (err.code === 10062) {
+          await interaction.channel.send(
+            `<@${interaction.user.id}> ❌ This ritual has already ended.`
+          );
+          return;
+        }
+        throw err;
+      }
     }
 
     const userId = interaction.user.id;
     raffle.boundUsers ??= [];
     raffle.entries ??= [];
 
-    // Prevent double join
+    // 🔮 Prevent double join — with safe fallback
     if (raffle.boundUsers.includes(userId)) {
-      return interaction.reply({
-        content: "🔮 You have already joined this ritual.",
-        flags: 64
-      });
+      try {
+        return await interaction.reply({
+          content: "🔮 You have already joined this ritual.",
+          flags: 64
+        });
+      } catch (err) {
+        if (err.code === 10062) {
+          console.log("[bindSoul] Interaction expired for double-join message");
+          await interaction.channel.send(
+            `<@${interaction.user.id}> 🔮 You have already joined this ritual.`
+          );
+          return;
+        }
+        throw err;
+      }
     }
 
-    // ⚠️ IMPORTANT: Respond immediately to avoid timeouts
-    await interaction.deferReply({ ephemeral: true });
+    // ⚠️ Safe deferReply — prevents Unknown Interaction crash
+    let canReply = true;
+    try {
+      await interaction.deferReply({ ephemeral: true });
+    } catch (err) {
+      if (err.code === 10062) {
+        console.log("[bindSoul] Interaction expired during deferReply");
+        canReply = false; // We will use fallback messaging
+      } else {
+        throw err;
+      }
+    }
 
     // Save original state in case embed update fails
     const originalEntries = [...raffle.entries];
@@ -56,10 +87,17 @@ export async function handleBindSoul(interaction, raffleId) {
       raffle.entries = originalEntries;
       raffle.boundUsers = originalBoundUsers;
 
-      return interaction.editReply({
-        content: "❌ The ritual could not be updated. You were not joined.",
-        flags: 64
-      });
+      if (canReply) {
+        return interaction.editReply({
+          content: "❌ The ritual could not be updated. You were not joined.",
+          flags: 64
+        });
+      } else {
+        await interaction.channel.send(
+          `<@${interaction.user.id}> ❌ The ritual could not be updated. You were not joined.`
+        );
+        return;
+      }
     }
 
     // Save updated raffle
@@ -85,9 +123,28 @@ export async function handleBindSoul(interaction, raffleId) {
       .setColor(0x5A00A0)
       .setFooter({ text: "The ritual intensifies…" });
 
-    return interaction.editReply({
-      embeds: [embed],
-      flags: 64
-    });
+    // Safe final reply
+    try {
+      if (canReply) {
+        return await interaction.editReply({
+          embeds: [embed],
+          flags: 64
+        });
+      } else {
+        await interaction.channel.send(
+          `<@${interaction.user.id}> 🔮 Your essence has been bound to the ritual.`
+        );
+        return;
+      }
+    } catch (err) {
+      if (err.code === 10062) {
+        console.log("[bindSoul] Interaction expired during editReply");
+        await interaction.channel.send(
+          `<@${interaction.user.id}> 🔮 Your essence has been bound to the ritual.`
+        );
+        return;
+      }
+      throw err;
+    }
   });
 }
