@@ -17,7 +17,7 @@ export function buildActiveRaffleEmbed(raffle) {
         `**⏳ Ends At**`,
         `<t:${Math.floor(raffle.endsAt / 1000)}:F>`,
         ``,
-        `**💠 Bound Sigils**`,
+        `**💠 The Bound**`,
         `${(raffle.entries ?? []).length}`
       ].join("\n")
     )
